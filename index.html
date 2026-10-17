@@ -60,7 +60,21 @@
         </div>
 
         <div class="row g-4">
-            <!-- 1. Receipt Account -->
+            <!-- 1. Bank Ledger -->
+            <div class="col-md-4">
+                <div class="card card-custom shadow-sm h-100 bg-white">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3 text-warning fs-1">
+                            <i class="fa-solid fa-building-columns"></i>
+                        </div>
+                        <h4 class="card-title fw-bold">Bank Ledger</h4>
+                        <p class="card-text text-muted">Monitor bank deposits, card issuance fees, VAT, and running balance sheets.</p>
+                        <a href="bank_ledger.html" class="btn btn-warning text-dark px-4 rounded-pill mt-2 fw-semibold">Open Bank Ledger</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Receipt Account -->
             <div class="col-md-4">
                 <div class="card card-custom shadow-sm h-100 bg-white">
                     <div class="card-body text-center p-4">
@@ -69,12 +83,12 @@
                         </div>
                         <h4 class="card-title fw-bold">Receipts Account</h4>
                         <p class="card-text text-muted">Manage all incoming payments, cash, card, and bank online receipts.</p>
-                        <a href="#" class="btn btn-success px-4 rounded-pill mt-2">Open Receipts</a>
+                        <a href="receipts.html" class="btn btn-success px-4 rounded-pill mt-2">Open Receipts</a>
                     </div>
                 </div>
             </div>
 
-            <!-- 2. Payment Account -->
+            <!-- 3. Payment Account -->
             <div class="col-md-4">
                 <div class="card card-custom shadow-sm h-100 bg-white">
                     <div class="card-body text-center p-4">
@@ -83,13 +97,13 @@
                         </div>
                         <h4 class="card-title fw-bold">Payments Ledger</h4>
                         <p class="card-text text-muted">Track outgoing expenses, lawyer fees, fuel delivery costs, and personal drawings.</p>
-                        <a href="#" class="btn btn-danger px-4 rounded-pill mt-2">Open Payments</a>
+                        <a href="payments.html" class="btn btn-danger px-4 rounded-pill mt-2">Open Payments</a>
                     </div>
                 </div>
             </div>
 
-            <!-- 3. Customer Ledger -->
-            <div class="col-md-4">
+            <!-- 4. Customer Ledger -->
+            <div class="col-md-6">
                 <div class="card card-custom shadow-sm h-100 bg-white">
                     <div class="card-body text-center p-4">
                         <div class="mb-3 text-primary fs-1">
@@ -97,21 +111,7 @@
                         </div>
                         <h4 class="card-title fw-bold">Customer Ledger</h4>
                         <p class="card-text text-muted">View customer debit amounts, outstanding dues, invoices, and partial payments.</p>
-                        <a href="#" class="btn btn-primary px-4 rounded-pill mt-2">Open Customers</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 4. Bank Ledger -->
-            <div class="col-md-6">
-                <div class="card card-custom shadow-sm h-100 bg-white">
-                    <div class="card-body text-center p-4">
-                        <div class="mb-3 text-warning fs-1">
-                            <i class="fa-solid fa-building-columns"></i>
-                        </div>
-                        <h4 class="card-title fw-bold">Bank Ledger (Zenith Bank / KPS)</h4>
-                        <p class="card-text text-muted">Monitor bank deposits, card issuance fees, VAT, and running balance sheets.</p>
-                        <a href="#" class="btn btn-warning text-dark px-4 rounded-pill mt-2 fw-semibold">Open Bank Ledger</a>
+                        <a href="customers.html" class="btn btn-primary px-4 rounded-pill mt-2">Open Customers</a>
                     </div>
                 </div>
             </div>
@@ -125,7 +125,7 @@
                         </div>
                         <h4 class="card-title fw-bold">Cash in Hand</h4>
                         <p class="card-text text-muted">Daily cash received, field expenses, road safety police payments, and cash hand balance.</p>
-                        <a href="#" class="btn btn-info text-white px-4 rounded-pill mt-2">Open Cash in Hand</a>
+                        <a href="cash_in_hand.html" class="btn btn-info text-white px-4 rounded-pill mt-2">Open Cash in Hand</a>
                     </div>
                 </div>
             </div>
@@ -141,5 +141,25 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Firebase SDK Integration -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD5BLPlTjaDBy6hmPeuedHtCnmcBQozLC4",
+            authDomain: "khan-petroleum-service-abuja.firebaseapp.com",
+            projectId: "khan-petroleum-service-abuja",
+            storageBucket: "khan-petroleum-service-abuja.firebasestorage.app",
+            messagingSenderId: "337162512372",
+            appId: "1:337162512372:web:b6f0f2be3a6d0ee7163ba1",
+            measurementId: "G-GVB8XSJNJX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        console.log("Firebase Connected Successfully!");
+    </script>
 </body>
 </html>
