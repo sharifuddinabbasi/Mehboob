@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Ledger - Khan Petroleum Services Limited</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f4f7f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .header-section {
+            background: linear-gradient(135deg, #0f5132, #198754);
+            color: white;
+            padding: 20px;
+            border-bottom: 5px solid #ffc107;
+        }
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        table th, table td {
+            font-size: 12px !important;
+            vertical-align: middle !important;
+            padding: 6px 4px !important;
+        }
+        /* Strict compact widths without Action column */
+        .sr-col { width: 5% !important; text-align: center; }
+        .date-col { width: 12% !important; white-space: nowrap; text-align: center; }
+        .desc-col { width: 41%; min-width: 180px; white-space: normal !important; word-break: break-word; }
+        .received-col { width: 14% !important; text-align: right; }
+        .send-col { width: 14% !important; text-align: right; }
+        .total-col { width: 14% !important; text-align: right; }
+
+        .footer {
+            background-color: #212529;
+            color: #adb5bd;
+            padding: 20px 0;
+            text-align: center;
+            margin-top: 50px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Section -->
+    <div class="header-section text-center">
+        <div class="container d-flex justify-content-between align-items-center flex-wrap">
+            <h2 class="fw-bold mb-0"><i class="fa-solid fa-calendar-day text-warning"></i> Daily Ledger</h2>
+            <a href="index.html" class="btn btn-secondary rounded-pill px-4 btn-sm">
+                <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Content Section -->
+    <div class="container-fluid my-4 px-3" style="max-width: 100%;">
+        
+        <div class="card shadow-sm border-0 bg-white rounded-4 overflow-hidden mb-4">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 text-truncate"><i class="fa-solid fa-book-open text-warning"></i> All Combined Transactions</h5>
+            </div>
+            
+            <div class="table-responsive p-1">
+                <table class="table table-bordered table-striped align-middle mb-0" style="min-width: 800px;">
+                    <thead class="table-secondary text-center">
+                        <tr>
+                            <th class="sr-col">Sr.No.</th>
+                            <th class="date-col">Date</th>
+                            <th class="desc-col">Description</th>
+                            <th class="received-col">Amount<br>Received</th>
+                            <th class="send-col">Amount<br>Send</th>
+                            <th class="total-col">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledgerTableBody">
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-3">Loading records from all accounts...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p class="mb-0">&copy; 2026 Khan Petroleum Services Limited. All Rights Reserved. By Mehboob Ali.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Firebase SDK & App Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD5BLPlTjaDBy6hmPeuedHtCnmcBQozLC4",
+            authDomain: "khan-petroleum-service-abuja.firebaseapp.com",
+            projectId: "khan-petroleum-service-abuja",
+            storageBucket: "khan-petroleum-service-abuja.firebasestorage.app",
+            messagingSenderId: "337162512372",
+            appId: "1:337162512372:web:b6f0f2be3a6d0ee7163ba1",
+            measurementId: "G-GVB8XSJNJX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const ledgerTableBody = document.getElementById('ledgerTableBody');
+
+        // Format date from yyyy-mm-dd to dd-mm-yyyy for display
+        function formatDateToDisplay(dateStr) {
+            if (!dateStr) return '-';
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            return dateStr;
+        }
+
+        // Helper to extract received and send values from different ledger formats
+        function extractAmounts(item, defaultType = 'both') {
+            let received = 0;
+            let send = 0;
+
+            if (defaultType === 'customer') {
+                // In customer_ledgers: amountReceived is incoming, amount is outgoing/sale
+                received = parseFloat(item.amountReceived) || 0;
+                send = parseFloat(item.amount) || 0;
+            } else if (defaultType === 'receipts') {
+                received = parseFloat(item.amountReceived || item.amount || item.received || item.debit || item.credit) || 0;
+            } else if (defaultType === 'payments') {
+                send = parseFloat(item.amountSend || item.amount || item.paid || item.send || item.credit || item.debit) || 0;
+            } else {
+                received = parseFloat(item.amountReceived || item.received || item.deposit || item.cashIn || item.credit || 0) || 0;
+                send = parseFloat(item.amountSend || item.send || item.paid || item.withdraw || item.expense || item.cashOut || item.debit || 0) || 0;
+                
+                // Fallback if only 'amount' is present
+                if (received === 0 && send === 0 && item.amount) {
+                    if (item.type && item.type.toLowerCase() === 'send') {
+                        send = parseFloat(item.amount) || 0;
+                    } else {
+                        received = parseFloat(item.amount) || 0;
+                    }
+                }
+            }
+            return { received, send };
+        }
+
+        // Read entire database to aggregate all accounts in real-time
+        onValue(ref(db, '/'), (snapshot) => {
+            const dbData = snapshot.val();
+            ledgerTableBody.innerHTML = '';
+
+            if (!dbData) {
+                ledgerTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No records found in any account.</td></tr>`;
+                return;
+            }
+
+            const customersMap = dbData.customers || {};
+            const banksMap = dbData.bank_accounts || {};
+            let allTransactions = [];
+
+            // 1. Read from Customer Ledgers (customer_ledgers)
+            if (dbData.customer_ledgers) {
+                Object.keys(dbData.customer_ledgers).forEach(custKey => {
+                    const custObj = customersMap[custKey];
+                    const custTitle = custObj ? `[${custObj.code}] ${custObj.name}` : 'Customer';
+                    const custTrans = dbData.customer_ledgers[custKey];
+
+                    if (custTrans && typeof custTrans === 'object') {
+                        Object.keys(custTrans).forEach(tKey => {
+                            const item = custTrans[tKey];
+                            if (item && typeof item === 'object') {
+                                const { received, send } = extractAmounts(item, 'customer');
+                                const methodInfo = item.method ? ` (${item.method})` : '';
+                                const remarksInfo = item.remarks ? ` - ${item.remarks}` : '';
+                                allTransactions.push({
+                                    date: item.date || '',
+                                    description: `<strong>${custTitle}:</strong> ${item.description || '-'}${methodInfo}${remarksInfo}`,
+                                    received,
+                                    send
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+
+            // 2. Read from Bank Ledgers (bank_ledger or bank_ledgers)
+            const bankLedgerNode = dbData.bank_ledger || dbData.bank_ledgers;
+            if (bankLedgerNode) {
+                Object.keys(bankLedgerNode).forEach(bKey => {
+                    const nodeVal = bankLedgerNode[bKey];
+                    // Check if nested by bank account key or flat list
+                    if (nodeVal && typeof nodeVal === 'object' && !nodeVal.date && !nodeVal.description) {
+                        const bankObj = banksMap[bKey];
+                        const bankTitle = bankObj ? `${bankObj.title} (${bankObj.bankName})` : 'Bank';
+                        Object.keys(nodeVal).forEach(tKey => {
+                            const item = nodeVal[tKey];
+                            if (item && typeof item === 'object') {
+                                const { received, send } = extractAmounts(item, 'both');
+                                allTransactions.push({
+                                    date: item.date || '',
+                                    description: `<strong>${bankTitle}:</strong> ${item.description || item.particulars || '-'}`,
+                                    received,
+                                    send
+                                });
+                            }
+                        });
+                    } else if (nodeVal && typeof nodeVal === 'object') {
+                        const { received, send } = extractAmounts(nodeVal, 'both');
+                        allTransactions.push({
+                            date: nodeVal.date || '',
+                            description: `<strong>Bank:</strong> ${nodeVal.description || nodeVal.particulars || '-'}`,
+                            received,
+                            send
+                        });
+                    }
+                });
+            }
+
+            // 3. Read from Receipts (receipts)
+            if (dbData.receipts) {
+                Object.keys(dbData.receipts).forEach(rKey => {
+                    const item = dbData.receipts[rKey];
+                    if (item && typeof item === 'object') {
+                        const { received, send } = extractAmounts(item, 'receipts');
+                        allTransactions.push({
+                            date: item.date || '',
+                            description: `<strong>Receipt:</strong> ${item.description || item.particulars || '-'}`,
+                            received,
+                            send
+                        });
+                    }
+                });
+            }
+
+            // 4. Read from Payments (payments)
+            if (dbData.payments) {
+                Object.keys(dbData.payments).forEach(pKey => {
+                    const item = dbData.payments[pKey];
+                    if (item && typeof item === 'object') {
+                        const { received, send } = extractAmounts(item, 'payments');
+                        allTransactions.push({
+                            date: item.date || '',
+                            description: `<strong>Payment:</strong> ${item.description || item.particulars || '-'}`,
+                            received,
+                            send
+                        });
+                    }
+                });
+            }
+
+            // 5. Read from Cash in Hand (cash_in_hand)
+            if (dbData.cash_in_hand) {
+                Object.keys(dbData.cash_in_hand).forEach(cKey => {
+                    const item = dbData.cash_in_hand[cKey];
+                    if (item && typeof item === 'object') {
+                        const { received, send } = extractAmounts(item, 'both');
+                        allTransactions.push({
+                            date: item.date || '',
+                            description: `<strong>Cash in Hand:</strong> ${item.description || item.particulars || '-'}`,
+                            received,
+                            send
+                        });
+                    }
+                });
+            }
+
+            // 6. Read from direct Daily Ledger entries (daily_ledger) if any exist
+            if (dbData.daily_ledger) {
+                Object.keys(dbData.daily_ledger).forEach(dKey => {
+                    const item = dbData.daily_ledger[dKey];
+                    if (item && typeof item === 'object') {
+                        const { received, send } = extractAmounts(item, 'both');
+                        allTransactions.push({
+                            date: item.date || '',
+                            description: item.description || '-',
+                            received,
+                            send
+                        });
+                    }
+                });
+            }
+
+            // Sort all transactions chronologically by Date
+            allTransactions.sort((a, b) => {
+                if (!a.date) return 1;
+                if (!b.date) return -1;
+                return new Date(a.date) - new Date(b.date);
+            });
+
+            // Render rows & calculate Running Total
+            if (allTransactions.length > 0) {
+                let index = 1;
+                let runningTotal = 0;
+
+                allTransactions.forEach(t => {
+                    runningTotal += (t.received - t.send);
+                    const displayDate = formatDateToDisplay(t.date);
+
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="fw-bold text-center sr-col">${index++}</td>
+                        <td class="date-col">${displayDate}</td>
+                        <td class="desc-col">${t.description}</td>
+                        <td class="fw-semibold text-success received-col">${t.received ? t.received.toLocaleString() : '-'}</td>
+                        <td class="fw-semibold text-danger send-col">${t.send ? t.send.toLocaleString() : '-'}</td>
+                        <td class="fw-bold total-col">${runningTotal.toLocaleString()}</td>
+                    `;
+                    ledgerTableBody.appendChild(row);
+                });
+            } else {
+                ledgerTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No transactions found across any accounts.</td></tr>`;
+            }
+        });
+    </script>
+</body>
+</html>
