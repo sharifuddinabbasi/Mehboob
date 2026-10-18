@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Ledger - Khan Petroleum Services Limited</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f4f7f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .header-section {
+            background: linear-gradient(135deg, #0f5132, #198754);
+            color: white;
+            padding: 20px;
+            border-bottom: 5px solid #ffc107;
+        }
+        .hidden-section {
+            display: none !important;
+        }
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        table th, table td {
+            font-size: 12px !important;
+            vertical-align: middle !important;
+            padding: 6px 4px !important;
+        }
+        /* Column widths */
+        .sr-col { width: 5% !important; text-align: center; }
+        .date-col { width: 12% !important; white-space: nowrap; text-align: center; }
+        .desc-col { width: 30%; min-width: 160px; white-space: normal !important; word-break: break-word; }
+        .sender-col { width: 25%; min-width: 150px; white-space: normal !important; word-break: break-word; }
+        .amount-col { width: 14% !important; text-align: right; }
+        .total-col { width: 14% !important; text-align: right; }
+
+        .footer {
+            background-color: #212529;
+            color: #adb5bd;
+            padding: 20px 0;
+            text-align: center;
+            margin-top: 50px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Section -->
+    <div class="header-section text-center">
+        <div class="container d-flex justify-content-between align-items-center flex-wrap">
+            <h2 class="fw-bold mb-0"><i class="fa-solid fa-building-columns text-warning"></i> Bank Ledger</h2>
+            <a href="index.html" class="btn btn-secondary rounded-pill px-4 btn-sm">
+                <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Content Section -->
+    <div class="container-fluid my-4 px-3" style="max-width: 100%;">
+        
+        <!-- Dropdown Card to Select Bank Account / Cash -->
+        <div class="card shadow-sm border-0 bg-white rounded-4 p-3 mb-3">
+            <h5 class="fw-bold text-primary mb-2"><i class="fa-solid fa-list"></i> Select Account</h5>
+            <div class="mb-0">
+                <label for="bankDropdown" class="form-label fw-semibold text-muted">Choose Cash or a bank account from the list to view details:</label>
+                <select class="form-select form-select-lg" id="bankDropdown">
+                    <option value="" selected disabled>-- Select Account --</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Bank/Cash Details & Ledger Table Section (Initially Hidden) -->
+        <div class="card shadow-sm border-0 bg-white rounded-4 overflow-hidden mb-4 hidden-section" id="bankLedgerSection">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 text-truncate" id="selectedBankTitle"><i class="fa-solid fa-book-open text-warning"></i> Transactions</h5>
+            </div>
+            
+            <div class="table-responsive p-1">
+                <table class="table table-bordered table-striped align-middle mb-0" style="min-width: 850px;">
+                    <thead class="table-secondary text-center">
+                        <tr>
+                            <th class="sr-col">Sr.No.</th>
+                            <th class="date-col">Date</th>
+                            <th class="desc-col">Description</th>
+                            <th class="sender-col">Sender</th>
+                            <th class="amount-col">Amount</th>
+                            <th class="total-col">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledgerTableBody">
+                        <!-- Dynamic records will load here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p class="mb-0">&copy; 2026 Khan Petroleum Services Limited. All Rights Reserved. By Mehboob Ali.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Firebase SDK & App Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD5BLPlTjaDBy6hmPeuedHtCnmcBQozLC4",
+            authDomain: "khan-petroleum-service-abuja.firebaseapp.com",
+            projectId: "khan-petroleum-service-abuja",
+            storageBucket: "khan-petroleum-service-abuja.firebasestorage.app",
+            messagingSenderId: "337162512372",
+            appId: "1:337162512372:web:b6f0f2be3a6d0ee7163ba1",
+            measurementId: "G-GVB8XSJNJX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const bankDropdown = document.getElementById('bankDropdown');
+        const bankLedgerSection = document.getElementById('bankLedgerSection');
+        const selectedBankTitle = document.getElementById('selectedBankTitle');
+        const ledgerTableBody = document.getElementById('ledgerTableBody');
+
+        let globalDbData = null;
+        let selectedBankKey = "";
+        let selectedBankName = "";
+
+        // Format date from yyyy-mm-dd to dd-mm-yyyy for display
+        function formatDateToDisplay(dateStr) {
+            if (!dateStr) return '-';
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            return dateStr;
+        }
+
+        // 1. Load Cash at top and Bank Accounts into Dropdown from Firebase (`bank_accounts`)
+        onValue(ref(db, 'bank_accounts'), (snapshot) => {
+            const data = snapshot.val();
+            bankDropdown.innerHTML = '<option value="" selected disabled>-- Select Account --</option>';
+            
+            // Add Cash option at the very top
+            const cashOption = document.createElement('option');
+            cashOption.value = "cash";
+            cashOption.textContent = "[CASH] Cash in Hand";
+            bankDropdown.appendChild(cashOption);
+
+            if (data) {
+                Object.keys(data).forEach((key) => {
+                    const b = data[key];
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = `${b.title} (${b.bankName}) - A/C: ${b.accountNumber || 'N/A'}`;
+                    bankDropdown.appendChild(option);
+                });
+            }
+        });
+
+        // 2. Fetch full database for transactions matching selected bank/cash
+        onValue(ref(db, '/'), (snapshot) => {
+            globalDbData = snapshot.val();
+            if (selectedBankKey) {
+                renderBankTransactions();
+            }
+        });
+
+        // 3. When an account is selected from dropdown
+        bankDropdown.addEventListener('change', (e) => {
+            selectedBankKey = e.target.value;
+            selectedBankName = bankDropdown.options[bankDropdown.selectedIndex].text;
+
+            if (selectedBankKey) {
+                bankLedgerSection.classList.remove('hidden-section');
+                selectedBankTitle.innerHTML = `<i class="fa-solid fa-building-columns text-warning"></i> Transactions for: <strong>${selectedBankName}</strong>`;
+                renderBankTransactions();
+            }
+        });
+
+        // Render transactions for the selected account (Cash or Bank)
+        function renderBankTransactions() {
+            ledgerTableBody.innerHTML = '';
+            if (!globalDbData) {
+                ledgerTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No records found.</td></tr>`;
+                return;
+            }
+
+            const customersMap = globalDbData.customers || {};
+            const banksMap = globalDbData.bank_accounts || {};
+            let allTransactions = [];
+
+            if (selectedBankKey === "cash") {
+                // 1. Load Cash in Hand from cash_in_hand node
+                if (globalDbData.cash_in_hand) {
+                    Object.keys(globalDbData.cash_in_hand).forEach(cKey => {
+                        const item = globalDbData.cash_in_hand[cKey];
+                        if (item && typeof item === 'object') {
+                            const deposit = parseFloat(item.amountReceived || item.received || item.deposit || 0) || 0;
+                            if (deposit > 0) {
+                                allTransactions.push({
+                                    date: item.date || '',
+                                    description: item.description || item.particulars || 'Cash In',
+                                    sender: item.sender || 'Cash Source',
+                                    amount: deposit
+                                });
+                            }
+                        }
+                    });
+                }
+
+                // 2. Load Cash transactions from customer_ledgers where method is 'Cash'
+                if (globalDbData.customer_ledgers) {
+                    Object.keys(globalDbData.customer_ledgers).forEach(custKey => {
+                        const custObj = customersMap[custKey];
+                        const custTitle = custObj ? `[${custObj.code}] ${custObj.name}` : 'Customer';
+                        const custTrans = globalDbData.customer_ledgers[custKey];
+
+                        if (custTrans && typeof custTrans === 'object') {
+                            Object.keys(custTrans).forEach(tKey => {
+                                const item = custTrans[tKey];
+                                if (item && typeof item === 'object') {
+                                    const amountReceived = parseFloat(item.amountReceived) || 0;
+                                    const itemMethod = (item.method || "").trim().toLowerCase();
+
+                                    if (amountReceived > 0 && itemMethod === 'cash') {
+                                        allTransactions.push({
+                                            date: item.date || '',
+                                            description: item.description || 'Cash Received',
+                                            sender: custTitle,
+                                            amount: amountReceived
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
+            } else {
+                const currentBankObj = banksMap[selectedBankKey] || {};
+                const bankTitleQuery = currentBankObj.title ? currentBankObj.title.trim().toLowerCase() : "";
+
+                // Search in customer ledgers where method matches this bank account
+                if (globalDbData.customer_ledgers) {
+                    Object.keys(globalDbData.customer_ledgers).forEach(custKey => {
+                        const custObj = customersMap[custKey];
+                        const custTitle = custObj ? `[${custObj.code}] ${custObj.name}` : 'Customer';
+                        const custTrans = globalDbData.customer_ledgers[custKey];
+
+                        if (custTrans && typeof custTrans === 'object') {
+                            Object.keys(custTrans).forEach(tKey => {
+                                const item = custTrans[tKey];
+                                if (item && typeof item === 'object') {
+                                    const amountReceived = parseFloat(item.amountReceived) || 0;
+                                    const itemMethod = (item.method || "").trim().toLowerCase();
+
+                                    if (amountReceived > 0 && itemMethod && bankTitleQuery && itemMethod.includes(bankTitleQuery)) {
+                                        allTransactions.push({
+                                            date: item.date || '',
+                                            description: item.description || 'Bank Transfer Received',
+                                            sender: custTitle,
+                                            amount: amountReceived
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
+
+                // Search in direct bank ledger nodes
+                const bankLedgerNode = globalDbData.bank_ledger || globalDbData.bank_ledgers;
+                if (bankLedgerNode && bankLedgerNode[selectedBankKey]) {
+                    const nodeVal = bankLedgerNode[selectedBankKey];
+                    if (nodeVal && typeof nodeVal === 'object') {
+                        Object.keys(nodeVal).forEach(tKey => {
+                            const item = nodeVal[tKey];
+                            if (item && typeof item === 'object') {
+                                const deposit = parseFloat(item.amountReceived || item.received || item.deposit || item.credit || 0) || 0;
+                                if (deposit > 0) {
+                                    allTransactions.push({
+                                        date: item.date || '',
+                                        description: item.description || item.particulars || 'Bank Deposit',
+                                        sender: item.sender || 'Source',
+                                        amount: deposit
+                                    });
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+
+            // Sort chronologically by Date
+            allTransactions.sort((a, b) => {
+                if (!a.date) return 1;
+                if (!b.date) return -1;
+                return new Date(a.date) - new Date(b.date);
+            });
+
+            // Render rows & calculate Running Total
+            if (allTransactions.length > 0) {
+                let index = 1;
+                let runningTotal = 0;
+
+                allTransactions.forEach(t => {
+                    runningTotal += t.amount;
+                    const displayDate = formatDateToDisplay(t.date);
+
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="fw-bold text-center sr-col">${index++}</td>
+                        <td class="date-col">${displayDate}</td>
+                        <td class="desc-col">${t.description}</td>
+                        <td class="sender-col">${t.sender}</td>
+                        <td class="fw-semibold text-success amount-col">${t.amount ? t.amount.toLocaleString() : '-'}</td>
+                        <td class="fw-bold total-col">${runningTotal.toLocaleString()}</td>
+                    `;
+                    ledgerTableBody.appendChild(row);
+                });
+            } else {
+                ledgerTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No transactions found for this account.</td></tr>`;
+            }
+        }
+    </script>
+</body>
+</html>
