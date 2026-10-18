@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customers List - Khan Petroleum Services Limited</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f4f7f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .header-section {
+            background: linear-gradient(135deg, #0f5132, #198754);
+            color: white;
+            padding: 20px;
+            border-bottom: 5px solid #ffc107;
+        }
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        table th, table td {
+            font-size: 14px;
+            vertical-align: middle !important;
+        }
+        .name-col {
+            min-width: 250px;
+            white-space: normal !important;
+            word-break: break-word;
+        }
+        .address-col {
+            min-width: 220px;
+            white-space: normal !important;
+            word-break: break-word;
+        }
+        .footer {
+            background-color: #212529;
+            color: #adb5bd;
+            padding: 20px 0;
+            text-align: center;
+            margin-top: 50px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Section -->
+    <div class="header-section text-center">
+        <div class="container d-flex justify-content-between align-items-center flex-wrap">
+            <h2 class="fw-bold mb-0"><i class="fa-solid fa-users text-warning"></i> Customers List</h2>
+            <a href="index.html" class="btn btn-secondary rounded-pill px-4 btn-sm">
+                <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Content Section -->
+    <div class="container-fluid my-4 px-3">
+        <!-- Table Responsive Container with Horizontal Scroll -->
+        <div class="card shadow-sm border-0 bg-white rounded-4 overflow-hidden mb-4">
+            <div class="table-responsive p-0">
+                <table class="table table-bordered table-striped align-middle mb-0" style="min-width: 700px;">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width: 8%;">Sr.No.</th>
+                            <th style="width: 15%;">Code</th>
+                            <th class="name-col">Name</th>
+                            <th style="width: 20%;">Cell No.</th>
+                            <th class="address-col">Address</th>
+                            <th class="text-center" style="width: 15%;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customerTableBody">
+                        <!-- Data loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-3 p-3 bg-white rounded-4">
+            <h6 class="fw-bold text-success mb-2" id="formTitle"><i class="fa-solid fa-user-plus"></i> Add New Customer</h6>
+            <form id="customerForm" class="row g-2">
+                <input type="hidden" id="editKey">
+                <div class="col-md-2">
+                    <input type="text" class="form-control form-control-sm" id="custCode" required placeholder="Code (CU001)">
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control form-control-sm" id="custName" required placeholder="Customer Name">
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control form-control-sm" id="custCell" required placeholder="Cell No.">
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control form-control-sm" id="custAddress" required placeholder="Address">
+                </div>
+                <div class="col-12 text-end mt-2">
+                    <button type="submit" class="btn btn-success btn-sm px-4 rounded-pill fw-semibold" id="saveBtn">
+                        <i class="fa-solid fa-save"></i> Save Customer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p class="mb-0">&copy; 2026 Khan Petroleum Services Limited. All Rights Reserved. By Mehboob Ali.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Firebase SDK & App Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getDatabase, ref, push, set, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD5BLPlTjaDBy6hmPeuedHtCnmcBQozLC4",
+            authDomain: "khan-petroleum-service-abuja.firebaseapp.com",
+            projectId: "khan-petroleum-service-abuja",
+            storageBucket: "khan-petroleum-service-abuja.firebasestorage.app",
+            messagingSenderId: "337162512372",
+            appId: "1:337162512372:web:b6f0f2be3a6d0ee7163ba1",
+            measurementId: "G-GVB8XSJNJX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const customerForm = document.getElementById('customerForm');
+        const customerTableBody = document.getElementById('customerTableBody');
+
+        customerForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const editKey = document.getElementById('editKey').value;
+            const code = document.getElementById('custCode').value;
+            const name = document.getElementById('custName').value;
+            const cell = document.getElementById('custCell').value;
+            const address = document.getElementById('custAddress').value;
+
+            const customerData = { code, name, cell, address };
+
+            if (editKey === "") {
+                const newRef = push(ref(db, 'customers'));
+                set(newRef, customerData).then(() => { customerForm.reset(); }).catch((err) => alert(err.message));
+            } else {
+                set(ref(db, 'customers/' + editKey), customerData).then(() => {
+                    customerForm.reset();
+                    document.getElementById('editKey').value = "";
+                    document.getElementById('formTitle').innerHTML = '<i class="fa-solid fa-user-plus"></i> Add New Customer';
+                    document.getElementById('saveBtn').innerHTML = '<i class="fa-solid fa-save"></i> Save Customer';
+                }).catch((err) => alert(err.message));
+            }
+        });
+
+        onValue(ref(db, 'customers'), (snapshot) => {
+            const data = snapshot.val();
+            customerTableBody.innerHTML = '';
+            if (data) {
+                let index = 1;
+                Object.keys(data).forEach((key) => {
+                    const c = data[key];
+                    customerTableBody.innerHTML += `<tr>
+                        <td class="fw-bold">${index++}</td>
+                        <td><strong>${c.code}</strong></td>
+                        <td class="name-col">${c.name}</td>
+                        <td style="white-space: nowrap;">${c.cell || '-'}</td>
+                        <td class="address-col">${c.address || '-'}</td>
+                        <td class="text-center" style="white-space: nowrap;">
+                            <div class="d-flex flex-column gap-1">
+                                <button class="btn btn-warning btn-sm text-dark px-2 py-0 fw-semibold" onclick="editCustomer('${key}', '${c.code}', '${c.name}', '${c.cell || ''}', '${c.address || ''}')">Edit</button>
+                                <button class="btn btn-danger btn-sm px-2 py-0 fw-semibold" onclick="deleteCustomer('${key}')">Del</button>
+                            </div>
+                        </td>
+                    </tr>`;
+                });
+            } else {
+                customerTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No customers found.</td></tr>`;
+            }
+        });
+
+        window.deleteCustomer = (key) => {
+            if (confirm("Delete this customer?")) remove(ref(db, 'customers/' + key));
+        };
+
+        window.editCustomer = (key, code, name, cell, address) => {
+            document.getElementById('editKey').value = key;
+            document.getElementById('custCode').value = code;
+            document.getElementById('custName').value = name;
+            document.getElementById('custCell').value = cell;
+            document.getElementById('custAddress').value = address;
+            document.getElementById('formTitle').innerHTML = '<i class="fa-solid fa-user-pen"></i> Edit Customer';
+            document.getElementById('saveBtn').innerHTML = '<i class="fa-solid fa-sync"></i> Update Customer';
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        };
+    </script>
+</body>
+</html>
