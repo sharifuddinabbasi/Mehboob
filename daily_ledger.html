@@ -30,12 +30,13 @@
         }
         /* Column widths */
         .sr-col { width: 5% !important; text-align: center; }
-        .date-col { width: 11% !important; white-space: nowrap; text-align: center; }
-        .desc-col { width: 22%; min-width: 140px; white-space: normal !important; word-break: break-word; }
-        .sender-col { width: 18%; min-width: 120px; white-space: normal !important; word-break: break-word; }
-        .receiver-col { width: 18%; min-width: 120px; white-space: normal !important; word-break: break-word; }
-        .amount-col { width: 13% !important; text-align: right; }
-        .total-col { width: 13% !important; text-align: right; }
+        .date-col { width: 10% !important; white-space: nowrap; text-align: center; }
+        .desc-col { width: 22%; min-width: 130px; white-space: normal !important; word-break: break-word; }
+        .sender-col { width: 15%; min-width: 110px; white-space: normal !important; word-break: break-word; }
+        .receiver-col { width: 15%; min-width: 110px; white-space: normal !important; word-break: break-word; }
+        .received-col { width: 12% !important; text-align: right; }
+        .send-col { width: 12% !important; text-align: right; }
+        .total-col { width: 9% !important; text-align: right; }
 
         .footer {
             background-color: #212529;
@@ -67,7 +68,7 @@
             </div>
             
             <div class="table-responsive p-1">
-                <table class="table table-bordered table-striped align-middle mb-0" style="min-width: 900px;">
+                <table class="table table-bordered table-striped align-middle mb-0" style="min-width: 950px;">
                     <thead class="table-secondary text-center">
                         <tr>
                             <th class="sr-col">Sr.No.</th>
@@ -75,13 +76,14 @@
                             <th class="desc-col">Description</th>
                             <th class="sender-col">Sender</th>
                             <th class="receiver-col">Receiver</th>
-                            <th class="amount-col">Amount</th>
+                            <th class="received-col">Amount<br>Received</th>
+                            <th class="send-col">Amount<br>Send</th>
                             <th class="total-col">Total</th>
                         </tr>
                     </thead>
                     <tbody id="ledgerTableBody">
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-3">Loading records...</td>
+                            <td colspan="8" class="text-center text-muted py-3">Loading records...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -130,13 +132,13 @@
             return dateStr;
         }
 
-        // Read database to aggregate only received/incoming amounts
+        // Read database to aggregate transactions
         onValue(ref(db, '/'), (snapshot) => {
             const dbData = snapshot.val();
             ledgerTableBody.innerHTML = '';
 
             if (!dbData) {
-                ledgerTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">No records found.</td></tr>`;
+                ledgerTableBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">No records found.</td></tr>`;
                 return;
             }
 
@@ -144,7 +146,7 @@
             const banksMap = dbData.bank_accounts || {};
             let allTransactions = [];
 
-            // 1. Read only Amount Received from Customer Ledgers
+            // 1. Read from Customer Ledgers (Only Amount Received from customers)
             if (dbData.customer_ledgers) {
                 Object.keys(dbData.customer_ledgers).forEach(custKey => {
                     const custObj = customersMap[custKey];
@@ -163,7 +165,8 @@
                                         description: item.description || 'Payment Received',
                                         sender: custTitle,
                                         receiver: item.method || 'Company Account',
-                                        amount: amountReceived
+                                        amountReceived: amountReceived,
+                                        amountSend: 0
                                     });
                                 }
                             }
@@ -172,7 +175,7 @@
                 });
             }
 
-            // 2. Read from Bank deposits / Receipts / Cash in Hand incoming amounts
+            // 2. Read from Bank deposits / Withdrawals
             const bankLedgerNode = dbData.bank_ledger || dbData.bank_ledgers;
             if (bankLedgerNode) {
                 Object.keys(bankLedgerNode).forEach(bKey => {
@@ -184,13 +187,26 @@
                             const item = nodeVal[tKey];
                             if (item && typeof item === 'object') {
                                 const deposit = parseFloat(item.amountReceived || item.received || item.deposit || item.credit || 0) || 0;
+                                const withdraw = parseFloat(item.amountSend || item.send || item.paid || item.withdraw || item.debit || 0) || 0;
+
                                 if (deposit > 0) {
                                     allTransactions.push({
                                         date: item.date || '',
                                         description: item.description || item.particulars || 'Bank Deposit',
                                         sender: item.sender || 'Source',
                                         receiver: bankTitle,
-                                        amount: deposit
+                                        amountReceived: deposit,
+                                        amountSend: 0
+                                    });
+                                }
+                                if (withdraw > 0) {
+                                    allTransactions.push({
+                                        date: item.date || '',
+                                        description: item.description || item.particulars || 'Bank Withdraw/Send',
+                                        sender: bankTitle,
+                                        receiver: item.receiver || 'Vendor/Expense',
+                                        amountReceived: 0,
+                                        amountSend: withdraw
                                     });
                                 }
                             }
@@ -199,6 +215,7 @@
                 });
             }
 
+            // 3. Read from Receipts
             if (dbData.receipts) {
                 Object.keys(dbData.receipts).forEach(rKey => {
                     const item = dbData.receipts[rKey];
@@ -210,25 +227,60 @@
                                 description: item.description || item.particulars || 'Receipt',
                                 sender: item.sender || 'Receipt Source',
                                 receiver: item.receiver || 'Company',
-                                amount: amt
+                                amountReceived: amt,
+                                amountSend: 0
                             });
                         }
                     }
                 });
             }
 
+            // 4. Read from Payments (Money sent from Bank/Cash to someone)
+            if (dbData.payments) {
+                Object.keys(dbData.payments).forEach(pKey => {
+                    const item = dbData.payments[pKey];
+                    if (item && typeof item === 'object') {
+                        const amt = parseFloat(item.amountSend || item.amount || item.paid || 0) || 0;
+                        if (amt > 0) {
+                            allTransactions.push({
+                                date: item.date || '',
+                                description: item.description || item.particulars || 'Payment Out',
+                                sender: item.sender || 'Company/Bank/Cash',
+                                receiver: item.receiver || 'Payment Destination',
+                                amountReceived: 0,
+                                amountSend: amt
+                            });
+                        }
+                    }
+                });
+            }
+
+            // 5. Read from Cash in Hand
             if (dbData.cash_in_hand) {
                 Object.keys(dbData.cash_in_hand).forEach(cKey => {
                     const item = dbData.cash_in_hand[cKey];
                     if (item && typeof item === 'object') {
                         const deposit = parseFloat(item.amountReceived || item.received || item.deposit || 0) || 0;
+                        const withdraw = parseFloat(item.amountSend || item.send || item.paid || item.expense || 0) || 0;
+
                         if (deposit > 0) {
                             allTransactions.push({
                                 date: item.date || '',
                                 description: item.description || item.particulars || 'Cash In',
                                 sender: item.sender || 'Cash Source',
                                 receiver: 'Cash in Hand',
-                                amount: deposit
+                                amountReceived: deposit,
+                                amountSend: 0
+                            });
+                        }
+                        if (withdraw > 0) {
+                            allTransactions.push({
+                                date: item.date || '',
+                                description: item.description || item.particulars || 'Cash Out/Expense',
+                                sender: 'Cash in Hand',
+                                receiver: item.receiver || 'Expense/Vendor',
+                                amountReceived: 0,
+                                amountSend: withdraw
                             });
                         }
                     }
@@ -242,13 +294,13 @@
                 return new Date(a.date) - new Date(b.date);
             });
 
-            // Render rows & calculate Running Total
+            // Render rows & calculate Running Total (Received adds, Send subtracts)
             if (allTransactions.length > 0) {
                 let index = 1;
                 let runningTotal = 0;
 
                 allTransactions.forEach(t => {
-                    runningTotal += t.amount;
+                    runningTotal += (t.amountReceived - t.amountSend);
                     const displayDate = formatDateToDisplay(t.date);
 
                     const row = document.createElement('tr');
@@ -258,13 +310,14 @@
                         <td class="desc-col">${t.description}</td>
                         <td class="sender-col">${t.sender}</td>
                         <td class="receiver-col">${t.receiver}</td>
-                        <td class="fw-semibold text-success amount-col">${t.amount ? t.amount.toLocaleString() : '-'}</td>
+                        <td class="fw-semibold text-success received-col">${t.amountReceived ? t.amountReceived.toLocaleString() : '-'}</td>
+                        <td class="fw-semibold text-danger send-col">${t.amountSend ? t.amountSend.toLocaleString() : '-'}</td>
                         <td class="fw-bold total-col">${runningTotal.toLocaleString()}</td>
                     `;
                     ledgerTableBody.appendChild(row);
                 });
             } else {
-                ledgerTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">No transactions found.</td></tr>`;
+                ledgerTableBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">No transactions found.</td></tr>`;
             }
         });
     </script>
