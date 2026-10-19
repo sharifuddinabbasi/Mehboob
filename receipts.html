@@ -19,10 +19,18 @@
             padding: 20px;
             border-bottom: 5px solid #ffc107;
         }
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
         table th, table td {
-            font-size: 12px !important;
+            font-size: 11px !important;
             vertical-align: middle !important;
-            padding: 6px 4px !important;
+            padding: 4px 2px !important;
+        }
+        .form-control-sm, .form-select-sm {
+            font-size: 11px !important;
+            padding: 3px 4px !important;
         }
         .footer {
             background-color: #212529;
@@ -46,75 +54,29 @@
     </div>
 
     <!-- Content Section -->
-    <div class="container-fluid my-4 px-3" style="max-width: 1100px;">
+    <div class="container-fluid my-4 px-2" style="max-width: 1300px;">
         
-        <!-- Add Receipt Form Card -->
-        <div class="card shadow-sm border-0 bg-white rounded-4 p-4 mb-4">
-            <h5 class="fw-bold text-success mb-3"><i class="fa-solid fa-plus-circle"></i> Add New Receipt</h5>
-            <form id="receiptForm">
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Date</label>
-                        <input type="date" class="form-control" id="receiptDate" required>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold">Customer</label>
-                        <select class="form-select" id="receiptCustomer" required>
-                            <option value="" selected disabled>-- Select Customer --</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Amount</label>
-                        <input type="number" class="form-control" id="receiptAmount" placeholder="Enter amount" required>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label fw-semibold">Method</label>
-                        <select class="form-select" id="receiptMethod" required>
-                            <option value="Cash">Cash</option>
-                            <option value="Cheque">Cheque</option>
-                            <option value="Card">Card</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold">Accounts</label>
-                        <select class="form-select" id="receiptAccount" required>
-                            <option value="" selected disabled>-- Select Account --</option>
-                            <option value="Cash in Hand">Cash in Hand</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Description</label>
-                        <input type="text" class="form-control" id="receiptDesc" placeholder="Enter description">
-                    </div>
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-success w-100 fw-bold">Save</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        <!-- Receipts Table Section -->
         <div class="card shadow-sm border-0 bg-white rounded-4 overflow-hidden mb-4">
             <div class="card-header bg-dark text-white py-3">
-                <h5 class="mb-0"><i class="fa-solid fa-book-open text-warning"></i> Receipts List</h5>
+                <h5 class="mb-0"><i class="fa-solid fa-book-open text-warning"></i> Receipts List & Entry</h5>
             </div>
             
             <div class="table-responsive p-1">
-                <table class="table table-bordered table-striped align-middle mb-0" style="min-width: 850px;">
+                <table class="table table-bordered table-striped align-middle mb-0" style="min-width: 1050px;">
                     <thead class="table-secondary text-center">
                         <tr>
-                            <th>Sr.No.</th>
-                            <th>Date</th>
-                            <th>Description</th>
-                            <th>Customer</th>
-                            <th>Amount</th>
-                            <th>Method</th>
-                            <th>Accounts</th>
+                            <th style="width: 5%;">Sr.No.</th>
+                            <th style="width: 11%;">Date</th>
+                            <th style="width: 25%;">Description</th>
+                            <th style="width: 18%;">Customer</th>
+                            <th style="width: 10%;">Amount</th>
+                            <th style="width: 10%;">Method</th>
+                            <th style="width: 16%;">Accounts</th>
+                            <th style="width: 5%;">Action</th>
                         </tr>
                     </thead>
                     <tbody id="receiptTableBody">
-                        <tr><td colspan="7" class="text-center text-muted py-3">Loading records...</td></tr>
+                        <!-- Data rows will load on top, Input row will be at the bottom -->
                     </tbody>
                 </table>
             </div>
@@ -135,7 +97,7 @@
     <!-- Firebase SDK & Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getDatabase, ref, onValue, push } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+        import { getDatabase, ref, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyD5BLPlTjaDBy6hmPeuedHtCnmcBQozLC4",
@@ -150,87 +112,123 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        document.getElementById('receiptDate').value = new Date().toISOString().split('T')[0];
-
-        // Load Customers Dropdown
-        onValue(ref(db, 'customers'), (snapshot) => {
-            const data = snapshot.val();
-            const custSelect = document.getElementById('receiptCustomer');
-            custSelect.innerHTML = '<option value="" selected disabled>-- Select Customer --</option>';
-            if (data) {
-                Object.keys(data).forEach(k => {
-                    const c = data[k];
-                    const opt = document.createElement('option');
-                    opt.value = `[${c.code || ''}] ${c.name}`;
-                    opt.textContent = `[${c.code || ''}] ${c.name}`;
-                    custSelect.appendChild(opt);
-                });
-            }
-        });
-
-        // Load Bank Accounts & Cash in Hand Dropdown
-        onValue(ref(db, 'bank_accounts'), (snapshot) => {
-            const data = snapshot.val();
-            const accSelect = document.getElementById('receiptAccount');
-            accSelect.innerHTML = '<option value="" selected disabled>-- Select Account --</option>';
-            
-            const cashOpt = document.createElement('option');
-            cashOpt.value = "Cash in Hand";
-            cashOpt.textContent = "Cash in Hand";
-            accSelect.appendChild(cashOpt);
-
-            if (data) {
-                Object.keys(data).forEach(k => {
-                    const b = data[k];
-                    const opt = document.createElement('option');
-                    opt.value = `${b.title} (${b.bankName})`;
-                    opt.textContent = `${b.title} (${b.bankName})`;
-                    accSelect.appendChild(opt);
-                });
-            }
-        });
-
-        // Submit Form
-        document.getElementById('receiptForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const newEntry = {
-                date: document.getElementById('receiptDate').value,
-                customer: document.getElementById('receiptCustomer').value,
-                amount: parseFloat(document.getElementById('receiptAmount').value) || 0,
-                method: document.getElementById('receiptMethod').value,
-                account: document.getElementById('receiptAccount').value,
-                description: document.getElementById('receiptDesc').value || 'Receipt'
-            };
-
-            push(ref(db, 'receipts'), newEntry).then(() => {
-                document.getElementById('receiptForm').reset();
-                document.getElementById('receiptDate').value = new Date().toISOString().split('T')[0];
-            });
-        });
-
-        // Load Receipts Table
+        // Load Receipts Table & append input row at the bottom
         onValue(ref(db, 'receipts'), (snapshot) => {
             const data = snapshot.val();
             const tbody = document.getElementById('receiptTableBody');
             tbody.innerHTML = '';
-            if (!data) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">No receipts found.</td></tr>`;
-                return;
+
+            // 1. Render existing records on top
+            if (data) {
+                let index = 1;
+                Object.keys(data).forEach(k => {
+                    const item = data[k];
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="text-center fw-bold">${index++}</td>
+                        <td class="text-center">${item.date || '-'}</td>
+                        <td>${item.description || '-'}</td>
+                        <td>${item.customer || '-'}</td>
+                        <td class="text-end text-success fw-semibold">${item.amount ? item.amount.toLocaleString() : '0'}</td>
+                        <td class="text-center">${item.method || '-'}</td>
+                        <td>${item.account || '-'}</td>
+                        <td class="text-center">
+                            <button class="btn btn-danger btn-sm py-0 px-2 delete-btn" data-id="${k}"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
             }
-            let index = 1;
-            Object.keys(data).forEach(k => {
-                const item = data[k];
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="text-center fw-bold">${index++}</td>
-                    <td class="text-center">${item.date || '-'}</td>
-                    <td>${item.description || '-'}</td>
-                    <td>${item.customer || '-'}</td>
-                    <td class="text-end text-success fw-semibold">${item.amount ? item.amount.toLocaleString() : '0'}</td>
-                    <td class="text-center">${item.method || '-'}</td>
-                    <td>${item.account || '-'}</td>
-                `;
-                tbody.appendChild(tr);
+
+            // 2. Append Input Row at the BOTTOM
+            const inputTr = document.createElement('tr');
+            inputTr.className = "table-light";
+            inputTr.innerHTML = `
+                <td class="text-center text-muted fw-bold">+</td>
+                <td><input type="date" class="form-control form-control-sm" id="inputDate" value="${new Date().toISOString().split('T')[0]}"></td>
+                <td><input type="text" class="form-control form-control-sm" id="inputDesc" placeholder="Description"></td>
+                <td>
+                    <select class="form-select form-select-sm" id="inputCustomer">
+                        <option value="" selected disabled>-- Select Customer --</option>
+                    </select>
+                </td>
+                <td><input type="number" class="form-control form-control-sm" id="inputAmount" placeholder="Amount"></td>
+                <td>
+                    <select class="form-select form-select-sm" id="inputMethod">
+                        <option value="Cash">Cash</option>
+                        <option value="Cheque">Cheque</option>
+                        <option value="Card">Card</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </td>
+                <td>
+                    <select class="form-select form-select-sm" id="inputAccount">
+                        <option value="" selected disabled>-- Account --</option>
+                        <option value="Cash in Hand">Cash in Hand</option>
+                    </select>
+                </td>
+                <td class="text-center">
+                    <button class="btn btn-success btn-sm py-1 px-3 fw-bold" id="addBtn">Add</button>
+                </td>
+            `;
+            tbody.appendChild(inputTr);
+
+            // Populate Customers Dropdown inside input row
+            onValue(ref(db, 'customers'), (snap) => {
+                const cData = snap.val();
+                const custSelect = document.getElementById('inputCustomer');
+                if (custSelect && cData) {
+                    Object.keys(cData).forEach(k => {
+                        const c = cData[k];
+                        const opt = document.createElement('option');
+                        opt.value = `[${c.code || ''}] ${c.name}`;
+                        opt.textContent = `[${c.code || ''}] ${c.name}`;
+                        custSelect.appendChild(opt);
+                    });
+                }
+            }, { onlyOnce: true });
+
+            // Populate Accounts Dropdown inside input row
+            onValue(ref(db, 'bank_accounts'), (snap) => {
+                const bData = snap.val();
+                const accSelect = document.getElementById('inputAccount');
+                if (accSelect && bData) {
+                    Object.keys(bData).forEach(k => {
+                        const b = bData[k];
+                        const opt = document.createElement('option');
+                        opt.value = `${b.title} (${b.bankName})`;
+                        opt.textContent = `${b.title} (${b.bankName})`;
+                        accSelect.appendChild(opt);
+                    });
+                }
+            }, { onlyOnce: true });
+
+            // Add Button Event
+            document.getElementById('addBtn').addEventListener('click', () => {
+                const date = document.getElementById('inputDate').value;
+                const customer = document.getElementById('inputCustomer').value;
+                const amount = parseFloat(document.getElementById('inputAmount').value) || 0;
+                const method = document.getElementById('inputMethod').value;
+                const account = document.getElementById('inputAccount').value;
+                const description = document.getElementById('inputDesc').value || 'Receipt';
+
+                if (!customer || amount <= 0 || !account) {
+                    alert("Baraye karam Customer, Amount aur Account zaroor select/enter karein!");
+                    return;
+                }
+
+                const newEntry = { date, customer, amount, method, account, description };
+                push(ref(db, 'receipts'), newEntry);
+            });
+
+            // Delete Event
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.currentTarget.getAttribute('data-id');
+                    if (confirm("Kya aap is entry ko delete karna chahte hain?")) {
+                        remove(ref(db, `receipts/${id}`));
+                    }
+                });
             });
         });
     </script>
