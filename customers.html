@@ -31,40 +31,14 @@
             vertical-align: middle !important;
             padding: 6px 4px !important;
         }
-        /* Strict compact widths */
-        .sr-col { width: 4% !important; text-align: center; }
-        .date-col { width: 11% !important; white-space: nowrap; }
-        .date-col input { 
-            font-size: 10px !important; 
-            padding: 2px 2px !important; 
-            width: 95px !important;
-        }
-        .desc-col { width: 29%; min-width: 150px; white-space: normal !important; word-break: break-word; }
-        .amount-col { width: 9% !important; }
-        .received-col { width: 9% !important; }
-        .method-col { width: 18%; }
-        .remarks-col { width: 12%; }
-        .action-col { width: 9%; text-align: center; }
-
-        /* Row hover & double-click selection prevention */
-        #ledgerTableBody tr {
-            cursor: pointer;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        #ledgerTableBody tr:hover {
-            background-color: #eef2f5;
-        }
-
-        /* Excel-like inline editing row style */
-        .inline-input {
-            width: 100%;
-            font-size: 11px;
-            padding: 2px 4px;
-            border: 1px solid #0d6efd;
-            border-radius: 4px;
-            background-color: #fff;
-        }
+        /* Column Widths */
+        .sr-col { width: 5% !important; text-align: center; }
+        .date-col { width: 12% !important; white-space: nowrap; text-align: center; }
+        .desc-col { width: 22%; min-width: 130px; white-space: normal !important; word-break: break-word; }
+        .rec-col { width: 15% !important; text-align: right; }
+        .method-col { width: 12% !important; text-align: center; }
+        .acc-col { width: 20%; min-width: 130px; white-space: normal !important; word-break: break-word; }
+        .rem-col { width: 14% !important; text-align: right; }
 
         .footer {
             background-color: #212529;
@@ -92,63 +66,37 @@
         
         <!-- Dropdown Card to Select Customer -->
         <div class="card shadow-sm border-0 bg-white rounded-4 p-3 mb-3">
-            <h5 class="fw-bold text-primary mb-2"><i class="fa-solid fa-list"></i> Select Customer</h5>
+            <h5 class="fw-bold text-primary mb-2"><i class="fa-solid fa-user-check"></i> Select Customer</h5>
             <div class="mb-0">
-                <label for="customerDropdown" class="form-label fw-semibold text-muted">Choose a customer from the list (Double-click any row to edit, click outside to auto-save):</label>
+                <label for="customerDropdown" class="form-label fw-semibold text-muted">Choose a customer from the list to view ledger:</label>
                 <select class="form-select form-select-lg" id="customerDropdown">
                     <option value="" selected disabled>-- Select a Customer --</option>
                 </select>
             </div>
         </div>
 
-        <!-- Customer Ledger Table Section (Initially Hidden until a customer is selected) -->
+        <!-- Customer Ledger Table Section -->
         <div class="card shadow-sm border-0 bg-white rounded-4 overflow-hidden mb-4 hidden-section" id="ledgerSection">
             <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
-                <h5 class="mb-0 text-truncate" id="selectedCustomerTitle"><i class="fa-solid fa-file-invoice-dollar"></i> Customer Transactions</h5>
+                <h5 class="mb-0 text-truncate" id="selectedCustomerTitle"><i class="fa-solid fa-book text-warning"></i> Customer Transactions</h5>
             </div>
             
             <div class="table-responsive p-1">
-                <table class="table table-bordered align-middle mb-0" style="min-width: 940px;">
+                <table class="table table-bordered table-striped align-middle mb-0" style="min-width: 850px;">
                     <thead class="table-secondary text-center">
                         <tr>
                             <th class="sr-col">Sr.No.</th>
                             <th class="date-col">Date</th>
                             <th class="desc-col">Description</th>
-                            <th class="amount-col">Amount</th>
-                            <th class="received-col">Amount<br>Received</th>
+                            <th class="rec-col">Amount<br>Received</th>
                             <th class="method-col">Method</th>
-                            <th class="remarks-col">Remarks</th>
-                            <th class="action-col">Action</th>
+                            <th class="acc-col">Account</th>
+                            <th class="rem-col">Total</th>
                         </tr>
                     </thead>
                     <tbody id="ledgerTableBody">
-                        <!-- Dynamic records will load here -->
+                        <!-- Dynamic rows will load here automatically -->
                     </tbody>
-                    <!-- Add New Transaction Row Inside Table -->
-                    <tfoot>
-                        <tr class="table-light">
-                            <form id="transactionForm">
-                                <td class="text-center fw-bold sr-col" id="nextSNo">1</td>
-                                <td class="date-col">
-                                    <input type="date" class="form-control form-control-sm" id="transDate" required>
-                                </td>
-                                <td class="desc-col"><input type="text" class="form-control form-control-sm" id="transDesc" placeholder="Description" required></td>
-                                <td class="amount-col"><input type="number" step="any" class="form-control form-control-sm" id="transAmount" placeholder="Amount"></td>
-                                <td class="received-col"><input type="number" step="any" class="form-control form-control-sm" id="transReceived" placeholder="Received"></td>
-                                <td class="method-col">
-                                    <select class="form-select form-select-sm" id="transMethod" required>
-                                        <option value="" selected disabled>-- Method --</option>
-                                        <option value="Cash">Cash</option>
-                                        <!-- Bank accounts populated dynamically -->
-                                    </select>
-                                </td>
-                                <td class="remarks-col"><input type="text" class="form-control form-control-sm" id="transRemarks" placeholder="Remarks"></td>
-                                <td class="text-center action-col">
-                                    <button type="submit" class="btn btn-success btn-sm w-100 fw-semibold px-1" id="transSaveBtn">Add</button>
-                                </td>
-                            </form>
-                        </tr>
-                    </tfoot>
                 </table>
             </div>
         </div>
@@ -168,7 +116,7 @@
     <!-- Firebase SDK & App Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getDatabase, ref, push, set, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyD5BLPlTjaDBy6hmPeuedHtCnmcBQozLC4",
@@ -187,16 +135,11 @@
         const ledgerSection = document.getElementById('ledgerSection');
         const selectedCustomerTitle = document.getElementById('selectedCustomerTitle');
         const ledgerTableBody = document.getElementById('ledgerTableBody');
-        const transactionForm = document.getElementById('transactionForm');
-        const transDate = document.getElementById('transDate');
-        const transMethod = document.getElementById('transMethod');
-        const nextSNo = document.getElementById('nextSNo');
 
-        let currentCustomerKey = "";
-        let bankAccountsList = [];
-        let currentLedgerData = null;
+        let globalDbData = null;
+        let selectedCustomerId = "";
 
-        // Helper function to format date from yyyy-mm-dd to dd-mm-yyyy for display
+        // Format date from yyyy-mm-dd to dd-mm-yyyy
         function formatDateToDisplay(dateStr) {
             if (!dateStr) return '-';
             const parts = dateStr.split('-');
@@ -206,228 +149,183 @@
             return dateStr;
         }
 
-        // Render table function
-        function renderLedgerTable() {
-            ledgerTableBody.innerHTML = '';
-            if (currentLedgerData) {
-                let index = 1;
-                Object.keys(currentLedgerData).forEach((lKey) => {
-                    const item = currentLedgerData[lKey];
-                    const displayDate = formatDateToDisplay(item.date);
-                    const rowIndex = index++;
-
-                    const row = document.createElement('tr');
-                    row.id = `row_${lKey}`;
-                    row.dataset.key = lKey;
-                    row.dataset.index = rowIndex;
-                    
-                    // Direct double-click attribute for reliable desktop & mobile support
-                    row.setAttribute('ondblclick', `enableRowEdit('${lKey}', ${rowIndex})`);
-
-                    row.innerHTML = `
-                        <td class="fw-bold text-center sr-col">${rowIndex}</td>
-                        <td class="date-col text-center">${displayDate}</td>
-                        <td class="desc-col">${item.description || '-'}</td>
-                        <td class="fw-semibold amount-col">${item.amount || '-'}</td>
-                        <td class="fw-semibold received-col">${item.amountReceived || '-'}</td>
-                        <td class="method-col">${item.method || '-'}</td>
-                        <td class="remarks-col">${item.remarks || '-'}</td>
-                        <td class="text-center action-col" style="white-space: nowrap;">
-                            <button type="button" class="btn btn-danger btn-sm px-2 py-1 fw-semibold" onclick="event.stopPropagation(); deleteTransaction('${currentCustomerKey}', '${lKey}')" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
-                        </td>
-                    `;
-                    ledgerTableBody.appendChild(row);
-                });
-                nextSNo.textContent = index;
-            } else {
-                ledgerTableBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">No records found. Add your first transaction below.</td></tr>`;
-                nextSNo.textContent = 1;
+        // Helper to separate Method (Cash / Bank) and Account detail
+        function extractMethodAndAccount(rawMethod, rawAccount) {
+            const val = (rawMethod || rawAccount || '').trim();
+            if (!val || val === '-') {
+                return { methodType: '-', accountName: '-' };
             }
+            if (val.toLowerCase() === 'cash' || val.toLowerCase().includes('cash in hand')) {
+                return { methodType: 'Cash', accountName: 'Cash in Hand' };
+            }
+            return { methodType: 'Bank', accountName: val };
         }
 
-        // Global function to enable inline editing on double click
-        window.enableRowEdit = function(lKey, rowIndex) {
-            const row = document.getElementById(`row_${lKey}`);
-            if (!row || row.classList.contains('editing')) return;
+        // Helper to check if a transaction record belongs to the selected customer
+        function isCustomerMatch(item, selectedId, custNameLower, custCodeLower, fullTitleLower) {
+            const itemCustId = item.customerId || item.customerKey || item.customer_id || '';
+            if (itemCustId && itemCustId === selectedId) return true;
 
-            // If another row is currently being edited, save it first
-            const existingEditRow = document.querySelector('tr.editing');
-            if (existingEditRow && existingEditRow !== row) {
-                const prevKey = existingEditRow.dataset.key;
-                saveInlineEdit(currentCustomerKey, prevKey);
-            }
+            const senderStr = (item.sender || item.customerName || item.customer || item.party || item.name || item.title || '').trim().toLowerCase();
+            if (!senderStr) return false;
 
-            const item = currentLedgerData[lKey] || {};
-            row.classList.add('editing');
-
-            row.innerHTML = `
-                <td class="fw-bold text-center sr-col">${rowIndex}</td>
-                <td class="date-col"><input type="date" class="inline-input" id="edit_date_${lKey}" value="${item.date || ''}"></td>
-                <td class="desc-col"><input type="text" class="inline-input" id="edit_desc_${lKey}" value="${item.description || ''}"></td>
-                <td class="amount-col"><input type="number" step="any" class="inline-input" id="edit_amount_${lKey}" value="${item.amount || ''}"></td>
-                <td class="received-col"><input type="number" step="any" class="inline-input" id="edit_received_${lKey}" value="${item.amountReceived || ''}"></td>
-                <td class="method-col">
-                    <select class="inline-input" id="edit_method_${lKey}">
-                        <option value="Cash" ${item.method === 'Cash' ? 'selected' : ''}>Cash</option>
-                        ${bankAccountsList.map(b => `<option value="${b}" ${item.method === b ? 'selected' : ''}>${b}</option>`).join('')}
-                    </select>
-                </td>
-                <td class="remarks-col"><input type="text" class="inline-input" id="edit_remarks_${lKey}" value="${item.remarks || ''}"></td>
-                <td class="text-center action-col" style="white-space: nowrap;">
-                    <button type="button" class="btn btn-success btn-sm px-2 py-0 fw-semibold mb-1" onclick="event.stopPropagation(); saveInlineEdit('${currentCustomerKey}', '${lKey}')" title="Save"><i class="fa-solid fa-check"></i></button>
-                    <button type="button" class="btn btn-secondary btn-sm px-2 py-0 fw-semibold" onclick="event.stopPropagation(); cancelInlineEdit()" title="Cancel"><i class="fa-solid fa-xmark"></i></button>
-                </td>
-            `;
-
-            // Focus on the description input automatically & allow Enter key to save
-            const descInput = document.getElementById(`edit_desc_${lKey}`);
-            if (descInput) descInput.focus();
-
-            const inputs = row.querySelectorAll('.inline-input');
-            inputs.forEach(inp => {
-                inp.addEventListener('keydown', (ev) => {
-                    if (ev.key === 'Enter') {
-                        ev.preventDefault();
-                        saveInlineEdit(currentCustomerKey, lKey);
-                    } else if (ev.key === 'Escape') {
-                        cancelInlineEdit();
-                    }
-                });
-            });
-        };
-
-        // 1. Load Bank Accounts for Method Dropdown
-        onValue(ref(db, 'bank_accounts'), (snapshot) => {
-            const data = snapshot.val();
-            bankAccountsList = [];
-            if (data) {
-                Object.keys(data).forEach((key) => {
-                    const b = data[key];
-                    bankAccountsList.push(`${b.title} (${b.bankName})`);
-                });
-            }
-            updateMethodDropdown();
-        });
-
-        function updateMethodDropdown() {
-            transMethod.innerHTML = `
-                <option value="" selected disabled>-- Method --</option>
-                <option value="Cash">Cash</option>
-            `;
-            bankAccountsList.forEach(bank => {
-                const opt = document.createElement('option');
-                opt.value = bank;
-                opt.textContent = bank;
-                transMethod.appendChild(opt);
-            });
+            return (custNameLower && senderStr.includes(custNameLower)) ||
+                   (custCodeLower && senderStr.includes(custCodeLower)) ||
+                   (senderStr === fullTitleLower);
         }
 
-        // 2. Load Customers into Dropdown from Firebase
+        // 1. Load Customers into Dropdown
         onValue(ref(db, 'customers'), (snapshot) => {
             const data = snapshot.val();
             customerDropdown.innerHTML = '<option value="" selected disabled>-- Select a Customer --</option>';
-            
             if (data) {
-                Object.keys(data).forEach((key) => {
+                Object.keys(data).forEach(key => {
                     const c = data[key];
                     const option = document.createElement('option');
                     option.value = key;
-                    option.textContent = `[${c.code}] ${c.name}`;
+                    option.textContent = `[${c.code || 'N/A'}] ${c.name}`;
                     customerDropdown.appendChild(option);
                 });
-            } else {
-                customerDropdown.innerHTML = '<option value="" selected disabled>No customers found</option>';
             }
         });
 
-        // 3. When a customer is selected from dropdown
+        // 2. Listen to entire database for live updates
+        onValue(ref(db, '/'), (snapshot) => {
+            globalDbData = snapshot.val();
+            if (selectedCustomerId) {
+                renderCustomerLedger();
+            }
+        });
+
+        // 3. Handle Customer Selection
         customerDropdown.addEventListener('change', (e) => {
-            currentCustomerKey = e.target.value;
-            const customerNameText = customerDropdown.options[customerDropdown.selectedIndex].text;
-
-            if (currentCustomerKey) {
+            selectedCustomerId = e.target.value;
+            const selectedText = customerDropdown.options[customerDropdown.selectedIndex].text;
+            if (selectedCustomerId) {
                 ledgerSection.classList.remove('hidden-section');
-                selectedCustomerTitle.innerHTML = `<i class="fa-solid fa-file-invoice-dollar"></i> Ledger for: <strong>${customerNameText}</strong>`;
-                
-                // Fetch customer specific transactions from Firebase
-                const ledgerRef = ref(db, `customer_ledgers/${currentCustomerKey}`);
-                onValue(ledgerRef, (snapshot) => {
-                    currentLedgerData = snapshot.val();
-                    renderLedgerTable();
-                });
+                selectedCustomerTitle.innerHTML = `<i class="fa-solid fa-book text-warning"></i> Ledger: <strong>${selectedText}</strong>`;
+                renderCustomerLedger();
             }
         });
 
-        // Use mousedown instead of click so double-click creation doesn't falsely trigger outside-save on desktop
-        document.addEventListener('mousedown', (event) => {
-            const activeRow = document.querySelector('tr.editing');
-            if (activeRow && !activeRow.contains(event.target)) {
-                const transKey = activeRow.dataset.key;
-                if (transKey) {
-                    saveInlineEdit(currentCustomerKey, transKey);
-                }
-            }
-        });
-
-        // 4. Add New Transaction Form Submit
-        transactionForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            if (!currentCustomerKey) {
-                alert("Please select a customer first!");
+        // Render Ledger by pulling from customer_ledgers, receipts, and cash_in_hand
+        function renderCustomerLedger() {
+            ledgerTableBody.innerHTML = '';
+            if (!globalDbData || !selectedCustomerId) {
+                ledgerTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">No records found.</td></tr>`;
                 return;
             }
 
-            const date = transDate.value;
-            const description = document.getElementById('transDesc').value;
-            const amount = document.getElementById('transAmount').value;
-            const amountReceived = document.getElementById('transReceived').value;
-            const method = transMethod.value;
-            const remarks = document.getElementById('transRemarks').value;
+            const customersMap = globalDbData.customers || {};
+            const currentCust = customersMap[selectedCustomerId];
+            if (!currentCust) return;
 
-            const transData = { date, description, amount, amountReceived, method, remarks };
-            const ledgerRef = ref(db, `customer_ledgers/${currentCustomerKey}`);
+            const custNameLower = (currentCust.name || '').trim().toLowerCase();
+            const custCodeLower = (currentCust.code || '').trim().toLowerCase();
+            const fullCustTitleLower = `[${custCodeLower}] ${custNameLower}`;
 
-            const newRef = push(ledgerRef);
-            set(newRef, transData).then(() => {
-                transactionForm.reset();
-            }).catch((err) => alert(err.message));
-        });
+            let transactions = [];
 
-        // 5. Save Inline Edited Data directly into Firebase & force UI update
-        window.saveInlineEdit = function(custKey, transKey) {
-            const dateEl = document.getElementById(`edit_date_${transKey}`);
-            if (!dateEl) return;
+            // A. Read from customer_ledgers for this customer
+            if (globalDbData.customer_ledgers && globalDbData.customer_ledgers[selectedCustomerId]) {
+                const custLedger = globalDbData.customer_ledgers[selectedCustomerId];
+                Object.keys(custLedger).forEach(tKey => {
+                    const item = custLedger[tKey];
+                    if (item && typeof item === 'object') {
+                        const rec = parseFloat(item.amountReceived || item.received || 0) || 0;
+                        const amt = parseFloat(item.amount || 0) || 0;
+                        const hasMethod = item.method && item.method.trim() !== '' && item.method.trim() !== '-';
 
-            const date = dateEl.value;
-            const description = document.getElementById(`edit_desc_${transKey}`).value;
-            const amount = document.getElementById(`edit_amount_${transKey}`).value;
-            const amountReceived = document.getElementById(`edit_received_${transKey}`).value;
-            const method = document.getElementById(`edit_method_${transKey}`).value;
-            const remarks = document.getElementById(`edit_remarks_${transKey}`).value;
+                        // Use amountReceived, or fallback to amount if a payment method (like Cash) was explicitly set
+                        const finalRec = rec > 0 ? rec : (hasMethod ? amt : 0);
 
-            const transData = { date, description, amount, amountReceived, method, remarks };
-
-            // Update local data immediately so even if nothing changed, the inputs close cleanly
-            if (currentLedgerData && currentLedgerData[transKey]) {
-                currentLedgerData[transKey] = transData;
+                        if (finalRec > 0) {
+                            const { methodType, accountName } = extractMethodAndAccount(item.method, item.account);
+                            transactions.push({
+                                date: item.date || '',
+                                description: item.description || 'Payment Received',
+                                amountReceived: finalRec,
+                                method: methodType,
+                                account: accountName
+                            });
+                        }
+                    }
+                });
             }
 
-            set(ref(db, `customer_ledgers/${custKey}/${transKey}`), transData).then(() => {
-                renderLedgerTable();
-            }).catch((err) => alert(err.message));
-        };
-
-        // 6. Cancel Inline Edit
-        window.cancelInlineEdit = function() {
-            renderLedgerTable();
-        };
-
-        // 7. Delete Transaction function globally available
-        window.deleteTransaction = function(custKey, transKey) {
-            if (confirm("Are you sure you want to delete this transaction?")) {
-                remove(ref(db, `customer_ledgers/${custKey}/${transKey}`));
+            // B. Read from `receipts` matching this customer
+            if (globalDbData.receipts) {
+                Object.keys(globalDbData.receipts).forEach(rKey => {
+                    const item = globalDbData.receipts[rKey];
+                    if (item && typeof item === 'object') {
+                        if (isCustomerMatch(item, selectedCustomerId, custNameLower, custCodeLower, fullCustTitleLower)) {
+                            const rec = parseFloat(item.amountReceived || item.received || item.credit || item.amount || 0) || 0;
+                            if (rec > 0) {
+                                const { methodType, accountName } = extractMethodAndAccount(item.method, item.receiver || item.account);
+                                transactions.push({
+                                    date: item.date || '',
+                                    description: item.description || item.particulars || 'Receipt Entry',
+                                    amountReceived: rec,
+                                    method: methodType,
+                                    account: accountName
+                                });
+                            }
+                        }
+                    }
+                });
             }
-        };
+
+            // C. Read from `cash_in_hand` matching this customer
+            if (globalDbData.cash_in_hand) {
+                Object.keys(globalDbData.cash_in_hand).forEach(cKey => {
+                    const item = globalDbData.cash_in_hand[cKey];
+                    if (item && typeof item === 'object') {
+                        if (isCustomerMatch(item, selectedCustomerId, custNameLower, custCodeLower, fullCustTitleLower)) {
+                            const rec = parseFloat(item.amountReceived || item.received || item.deposit || item.amount || 0) || 0;
+                            if (rec > 0) {
+                                transactions.push({
+                                    date: item.date || '',
+                                    description: item.description || item.particulars || 'Cash Received',
+                                    amountReceived: rec,
+                                    method: 'Cash',
+                                    account: 'Cash in Hand'
+                                });
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Sort chronologically by Date
+            transactions.sort((a, b) => {
+                if (!a.date) return 1;
+                if (!b.date) return -1;
+                return new Date(a.date) - new Date(b.date);
+            });
+
+            if (transactions.length > 0) {
+                let runningTotal = 0;
+                let index = 1;
+
+                transactions.forEach(item => {
+                    runningTotal += item.amountReceived;
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="sr-col fw-bold">${index++}</td>
+                        <td class="date-col">${formatDateToDisplay(item.date)}</td>
+                        <td class="desc-col">${item.description}</td>
+                        <td class="rec-col text-success fw-semibold">${item.amountReceived ? item.amountReceived.toLocaleString() : '-'}</td>
+                        <td class="method-col fw-semibold">${item.method}</td>
+                        <td class="acc-col">${item.account}</td>
+                        <td class="rem-col fw-bold">${runningTotal.toLocaleString()}</td>
+                    `;
+                    ledgerTableBody.appendChild(tr);
+                });
+            } else {
+                ledgerTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">No transactions found for this customer.</td></tr>`;
+            }
+        }
     </script>
 </body>
 </html>
