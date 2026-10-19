@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Receipts Account - Khan Petroleum Services Limited</title>
+    <title>Payments Account - Khan Petroleum Services Limited</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome for Icons -->
@@ -46,7 +46,7 @@
     <!-- Header Section -->
     <div class="header-section text-center">
         <div class="container d-flex justify-content-between align-items-center flex-wrap">
-            <h2 class="fw-bold mb-0"><i class="fa-solid fa-file-invoice-dollar text-warning"></i> Receipts Account</h2>
+            <h2 class="fw-bold mb-0"><i class="fa-solid fa-money-bill-transfer text-warning"></i> Payments Account</h2>
             <a href="index.html" class="btn btn-secondary rounded-pill px-4 btn-sm">
                 <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
             </a>
@@ -58,7 +58,7 @@
         
         <div class="card shadow-sm border-0 bg-white rounded-4 overflow-hidden mb-4">
             <div class="card-header bg-dark text-white py-3">
-                <h5 class="mb-0"><i class="fa-solid fa-book-open text-warning"></i> Receipts List & Entry</h5>
+                <h5 class="mb-0"><i class="fa-solid fa-book-open text-warning"></i> Payments List & Entry (Expenses, Salary, Tax, Rent)</h5>
             </div>
             
             <div class="table-responsive p-1">
@@ -67,15 +67,15 @@
                         <tr>
                             <th style="width: 5%;">Sr.No.</th>
                             <th style="width: 11%;">Date</th>
-                            <th style="width: 25%;">Description</th>
-                            <th style="width: 18%;">Customer</th>
-                            <th style="width: 10%;">Amount</th>
+                            <th style="width: 22%;">Description</th>
+                            <th style="width: 18%;">Paid To / Receiver</th>
+                            <th style="width: 12%;">Amount Sent</th>
                             <th style="width: 10%;">Method</th>
-                            <th style="width: 16%;">Accounts</th>
+                            <th style="width: 17%;">From Account</th>
                             <th style="width: 5%;">Action</th>
                         </tr>
                     </thead>
-                    <tbody id="receiptTableBody">
+                    <tbody id="paymentTableBody">
                         <!-- Data rows will load on top, Input row will be at the bottom -->
                     </tbody>
                 </table>
@@ -112,13 +112,13 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Load Receipts Table & append input row at the bottom
-        onValue(ref(db, 'receipts'), (snapshot) => {
+        // Load Payments Table & append input row at the bottom
+        onValue(ref(db, 'payments'), (snapshot) => {
             const data = snapshot.val();
-            const tbody = document.getElementById('receiptTableBody');
+            const tbody = document.getElementById('paymentTableBody');
             tbody.innerHTML = '';
 
-            // 1. Render existing records on top
+            // 1. Render existing payment records on top
             if (data) {
                 let index = 1;
                 Object.keys(data).forEach(k => {
@@ -128,8 +128,8 @@
                         <td class="text-center fw-bold">${index++}</td>
                         <td class="text-center">${item.date || '-'}</td>
                         <td>${item.description || '-'}</td>
-                        <td>${item.customer || '-'}</td>
-                        <td class="text-end text-success fw-semibold">${item.amount ? item.amount.toLocaleString() : '0'}</td>
+                        <td>${item.receiver || item.customer || '-'}</td>
+                        <td class="text-end text-danger fw-semibold">${item.amount ? item.amount.toLocaleString() : '0'}</td>
                         <td class="text-center">${item.method || '-'}</td>
                         <td>${item.account || '-'}</td>
                         <td class="text-center">
@@ -146,12 +146,8 @@
             inputTr.innerHTML = `
                 <td class="text-center text-muted fw-bold">+</td>
                 <td><input type="date" class="form-control form-control-sm" id="inputDate" value="${new Date().toISOString().split('T')[0]}"></td>
-                <td><input type="text" class="form-control form-control-sm" id="inputDesc" placeholder="Description"></td>
-                <td>
-                    <select class="form-select form-select-sm" id="inputCustomer">
-                        <option value="" selected disabled>-- Select Customer --</option>
-                    </select>
-                </td>
+                <td><input type="text" class="form-control form-control-sm" id="inputDesc" placeholder="e.g. Office Rent / Salary"></td>
+                <td><input type="text" class="form-control form-control-sm" id="inputReceiver" placeholder="Paid To Name"></td>
                 <td><input type="number" class="form-control form-control-sm" id="inputAmount" placeholder="Amount"></td>
                 <td>
                     <select class="form-select form-select-sm" id="inputMethod">
@@ -163,30 +159,15 @@
                 </td>
                 <td>
                     <select class="form-select form-select-sm" id="inputAccount">
-                        <option value="" selected disabled>-- Account --</option>
+                        <option value="" selected disabled>-- From Account --</option>
                         <option value="Cash in Hand">Cash in Hand</option>
                     </select>
                 </td>
                 <td class="text-center">
-                    <button class="btn btn-success btn-sm py-1 px-3 fw-bold" id="addBtn">Add</button>
+                    <button class="btn btn-danger btn-sm py-1 px-3 fw-bold" id="addBtn">Add</button>
                 </td>
             `;
             tbody.appendChild(inputTr);
-
-            // Populate Customers Dropdown inside input row
-            onValue(ref(db, 'customers'), (snap) => {
-                const cData = snap.val();
-                const custSelect = document.getElementById('inputCustomer');
-                if (custSelect && cData) {
-                    Object.keys(cData).forEach(k => {
-                        const c = cData[k];
-                        const opt = document.createElement('option');
-                        opt.value = `[${c.code || ''}] ${c.name}`;
-                        opt.textContent = `[${c.code || ''}] ${c.name}`;
-                        custSelect.appendChild(opt);
-                    });
-                }
-            }, { onlyOnce: true });
 
             // Populate Accounts Dropdown inside input row
             onValue(ref(db, 'bank_accounts'), (snap) => {
@@ -203,30 +184,30 @@
                 }
             }, { onlyOnce: true });
 
-            // Add Button Event
+            // Add Payment Button Event
             document.getElementById('addBtn').addEventListener('click', () => {
                 const date = document.getElementById('inputDate').value;
-                const customer = document.getElementById('inputCustomer').value;
+                const receiver = document.getElementById('inputReceiver').value.trim();
                 const amount = parseFloat(document.getElementById('inputAmount').value) || 0;
                 const method = document.getElementById('inputMethod').value;
                 const account = document.getElementById('inputAccount').value;
-                const description = document.getElementById('inputDesc').value || 'Receipt';
+                const description = document.getElementById('inputDesc').value || 'Payment Expense';
 
-                if (!customer || amount <= 0 || !account) {
-                    alert("Baraye karam Customer, Amount aur Account zaroor select/enter karein!");
+                if (!receiver || amount <= 0 || !account) {
+                    alert("Baraye karam Paid To (Receiver), Amount aur Account zaroor enter/select karein!");
                     return;
                 }
 
-                const newEntry = { date, customer, amount, method, account, description };
-                push(ref(db, 'receipts'), newEntry);
+                const newEntry = { date, receiver, amount, method, account, description };
+                push(ref(db, 'payments'), newEntry);
             });
 
             // Delete Event
             document.querySelectorAll('.delete-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const id = e.currentTarget.getAttribute('data-id');
-                    if (confirm("Kya aap is entry ko delete karna chahte hain?")) {
-                        remove(ref(db, `receipts/${id}`));
+                    if (confirm("Kya aap is payment entry ko delete karna chahte hain?")) {
+                        remove(ref(db, `payments/${id}`));
                     }
                 });
             });
