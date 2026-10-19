@@ -63,18 +63,18 @@
     <!-- Content Section -->
     <div class="container-fluid my-4 px-3" style="max-width: 100%;">
         
-        <!-- Dropdown Card to Select Bank Account / Cash -->
+        <!-- Dropdown Card to Select Bank Account -->
         <div class="card shadow-sm border-0 bg-white rounded-4 p-3 mb-3">
-            <h5 class="fw-bold text-primary mb-2"><i class="fa-solid fa-list"></i> Select Account</h5>
+            <h5 class="fw-bold text-primary mb-2"><i class="fa-solid fa-list"></i> Select Bank Account</h5>
             <div class="mb-0">
-                <label for="bankDropdown" class="form-label fw-semibold text-muted">Choose Cash or a bank account from the list to view details:</label>
+                <label for="bankDropdown" class="form-label fw-semibold text-muted">Choose a bank account from the list to view details:</label>
                 <select class="form-select form-select-lg" id="bankDropdown">
-                    <option value="" selected disabled>-- Select Account --</option>
+                    <option value="" selected disabled>-- Select Bank Account --</option>
                 </select>
             </div>
         </div>
 
-        <!-- Bank/Cash Details & Ledger Table Section (Initially Hidden) -->
+        <!-- Bank Details & Ledger Table Section (Initially Hidden) -->
         <div class="card shadow-sm border-0 bg-white rounded-4 overflow-hidden mb-4 hidden-section" id="bankLedgerSection">
             <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
                 <h5 class="mb-0 text-truncate" id="selectedBankTitle"><i class="fa-solid fa-book-open text-warning"></i> Transactions</h5>
@@ -148,17 +148,11 @@
             return dateStr;
         }
 
-        // 1. Load Cash at top and Bank Accounts into Dropdown from Firebase (`bank_accounts`)
+        // 1. Load Bank Accounts into Dropdown from Firebase (`bank_accounts`)
         onValue(ref(db, 'bank_accounts'), (snapshot) => {
             const data = snapshot.val();
-            bankDropdown.innerHTML = '<option value="" selected disabled>-- Select Account --</option>';
+            bankDropdown.innerHTML = '<option value="" selected disabled>-- Select Bank Account --</option>';
             
-            // Add Cash option at the very top
-            const cashOption = document.createElement('option');
-            cashOption.value = "cash";
-            cashOption.textContent = "[CASH] Cash in Hand";
-            bankDropdown.appendChild(cashOption);
-
             if (data) {
                 Object.keys(data).forEach((key) => {
                     const b = data[key];
@@ -170,7 +164,7 @@
             }
         });
 
-        // 2. Fetch full database for transactions matching selected bank/cash
+        // 2. Fetch full database for transactions matching selected bank
         onValue(ref(db, '/'), (snapshot) => {
             globalDbData = snapshot.val();
             if (selectedBankKey) {
@@ -178,7 +172,7 @@
             }
         });
 
-        // 3. When an account is selected from dropdown
+        // 3. When a bank account is selected from dropdown
         bankDropdown.addEventListener('change', (e) => {
             selectedBankKey = e.target.value;
             selectedBankName = bankDropdown.options[bankDropdown.selectedIndex].text;
@@ -190,7 +184,7 @@
             }
         });
 
-        // Render transactions for the selected account (Cash or Bank)
+        // Render transactions for the selected bank
         function renderBankTransactions() {
             ledgerTableBody.innerHTML = '';
             if (!globalDbData) {
@@ -202,104 +196,56 @@
             const banksMap = globalDbData.bank_accounts || {};
             let allTransactions = [];
 
-            if (selectedBankKey === "cash") {
-                // 1. Load Cash in Hand from cash_in_hand node
-                if (globalDbData.cash_in_hand) {
-                    Object.keys(globalDbData.cash_in_hand).forEach(cKey => {
-                        const item = globalDbData.cash_in_hand[cKey];
-                        if (item && typeof item === 'object') {
-                            const deposit = parseFloat(item.amountReceived || item.received || item.deposit || 0) || 0;
-                            if (deposit > 0) {
-                                allTransactions.push({
-                                    date: item.date || '',
-                                    description: item.description || item.particulars || 'Cash In',
-                                    sender: item.sender || 'Cash Source',
-                                    amount: deposit
-                                });
-                            }
-                        }
-                    });
-                }
+            const currentBankObj = banksMap[selectedBankKey] || {};
+            const bankTitleQuery = currentBankObj.title ? currentBankObj.title.trim().toLowerCase() : "";
 
-                // 2. Load Cash transactions from customer_ledgers where method is 'Cash'
-                if (globalDbData.customer_ledgers) {
-                    Object.keys(globalDbData.customer_ledgers).forEach(custKey => {
-                        const custObj = customersMap[custKey];
-                        const custTitle = custObj ? `[${custObj.code}] ${custObj.name}` : 'Customer';
-                        const custTrans = globalDbData.customer_ledgers[custKey];
+            // Search in customer ledgers where method matches this bank account
+            if (globalDbData.customer_ledgers) {
+                Object.keys(globalDbData.customer_ledgers).forEach(custKey => {
+                    const custObj = customersMap[custKey];
+                    const custTitle = custObj ? `[${custObj.code}] ${custObj.name}` : 'Customer';
+                    const custTrans = globalDbData.customer_ledgers[custKey];
 
-                        if (custTrans && typeof custTrans === 'object') {
-                            Object.keys(custTrans).forEach(tKey => {
-                                const item = custTrans[tKey];
-                                if (item && typeof item === 'object') {
-                                    const amountReceived = parseFloat(item.amountReceived) || 0;
-                                    const itemMethod = (item.method || "").trim().toLowerCase();
-
-                                    if (amountReceived > 0 && itemMethod === 'cash') {
-                                        allTransactions.push({
-                                            date: item.date || '',
-                                            description: item.description || 'Cash Received',
-                                            sender: custTitle,
-                                            amount: amountReceived
-                                        });
-                                    }
-                                }
-                            });
-                        }
-                    });
-                }
-            } else {
-                const currentBankObj = banksMap[selectedBankKey] || {};
-                const bankTitleQuery = currentBankObj.title ? currentBankObj.title.trim().toLowerCase() : "";
-
-                // Search in customer ledgers where method matches this bank account
-                if (globalDbData.customer_ledgers) {
-                    Object.keys(globalDbData.customer_ledgers).forEach(custKey => {
-                        const custObj = customersMap[custKey];
-                        const custTitle = custObj ? `[${custObj.code}] ${custObj.name}` : 'Customer';
-                        const custTrans = globalDbData.customer_ledgers[custKey];
-
-                        if (custTrans && typeof custTrans === 'object') {
-                            Object.keys(custTrans).forEach(tKey => {
-                                const item = custTrans[tKey];
-                                if (item && typeof item === 'object') {
-                                    const amountReceived = parseFloat(item.amountReceived) || 0;
-                                    const itemMethod = (item.method || "").trim().toLowerCase();
-
-                                    if (amountReceived > 0 && itemMethod && bankTitleQuery && itemMethod.includes(bankTitleQuery)) {
-                                        allTransactions.push({
-                                            date: item.date || '',
-                                            description: item.description || 'Bank Transfer Received',
-                                            sender: custTitle,
-                                            amount: amountReceived
-                                        });
-                                    }
-                                }
-                            });
-                        }
-                    });
-                }
-
-                // Search in direct bank ledger nodes
-                const bankLedgerNode = globalDbData.bank_ledger || globalDbData.bank_ledgers;
-                if (bankLedgerNode && bankLedgerNode[selectedBankKey]) {
-                    const nodeVal = bankLedgerNode[selectedBankKey];
-                    if (nodeVal && typeof nodeVal === 'object') {
-                        Object.keys(nodeVal).forEach(tKey => {
-                            const item = nodeVal[tKey];
+                    if (custTrans && typeof custTrans === 'object') {
+                        Object.keys(custTrans).forEach(tKey => {
+                            const item = custTrans[tKey];
                             if (item && typeof item === 'object') {
-                                const deposit = parseFloat(item.amountReceived || item.received || item.deposit || item.credit || 0) || 0;
-                                if (deposit > 0) {
+                                const amountReceived = parseFloat(item.amountReceived) || 0;
+                                const itemMethod = (item.method || "").trim().toLowerCase();
+
+                                if (amountReceived > 0 && itemMethod && bankTitleQuery && itemMethod.includes(bankTitleQuery)) {
                                     allTransactions.push({
                                         date: item.date || '',
-                                        description: item.description || item.particulars || 'Bank Deposit',
-                                        sender: item.sender || 'Source',
-                                        amount: deposit
+                                        description: item.description || 'Bank Transfer Received',
+                                        sender: custTitle,
+                                        amount: amountReceived
                                     });
                                 }
                             }
                         });
                     }
+                });
+            }
+
+            // Search in direct bank ledger nodes
+            const bankLedgerNode = globalDbData.bank_ledger || globalDbData.bank_ledgers;
+            if (bankLedgerNode && bankLedgerNode[selectedBankKey]) {
+                const nodeVal = bankLedgerNode[selectedBankKey];
+                if (nodeVal && typeof nodeVal === 'object') {
+                    Object.keys(nodeVal).forEach(tKey => {
+                        const item = nodeVal[tKey];
+                        if (item && typeof item === 'object') {
+                            const deposit = parseFloat(item.amountReceived || item.received || item.deposit || item.credit || 0) || 0;
+                            if (deposit > 0) {
+                                allTransactions.push({
+                                    date: item.date || '',
+                                    description: item.description || item.particulars || 'Bank Deposit',
+                                    sender: item.sender || 'Source',
+                                    amount: deposit
+                                });
+                            }
+                        }
+                    });
                 }
             }
 
@@ -331,7 +277,7 @@
                     ledgerTableBody.appendChild(row);
                 });
             } else {
-                ledgerTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No transactions found for this account.</td></tr>`;
+                ledgerTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No transactions found for this bank account.</td></tr>`;
             }
         }
     </script>
