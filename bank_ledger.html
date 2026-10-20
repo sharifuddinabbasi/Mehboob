@@ -31,14 +31,6 @@
             vertical-align: middle !important;
             padding: 6px 4px !important;
         }
-        /* Column widths */
-        .sr-col { width: 5% !important; text-align: center; }
-        .date-col { width: 12% !important; white-space: nowrap; text-align: center; }
-        .desc-col { width: 30%; min-width: 160px; white-space: normal !important; word-break: break-word; }
-        .sender-col { width: 25%; min-width: 150px; white-space: normal !important; word-break: break-word; }
-        .amount-col { width: 14% !important; text-align: right; }
-        .total-col { width: 14% !important; text-align: right; }
-
         .footer {
             background-color: #212529;
             color: #adb5bd;
@@ -61,11 +53,11 @@
     </div>
 
     <!-- Content Section -->
-    <div class="container-fluid my-4 px-3" style="max-width: 100%;">
+    <div class="container-fluid my-4 px-3" style="max-width: 1100px;">
         
-        <!-- Dropdown Card to Select Bank Account -->
+        <!-- Select Bank Dropdown Card -->
         <div class="card shadow-sm border-0 bg-white rounded-4 p-3 mb-3">
-            <h5 class="fw-bold text-primary mb-2"><i class="fa-solid fa-list"></i> Select Bank Account</h5>
+            <h5 class="fw-bold text-primary mb-2"><i class="fa-solid fa-list-check"></i> Select Bank Account</h5>
             <div class="mb-0">
                 <label for="bankDropdown" class="form-label fw-semibold text-muted">Choose a bank account from the list to view details:</label>
                 <select class="form-select form-select-lg" id="bankDropdown">
@@ -74,26 +66,27 @@
             </div>
         </div>
 
-        <!-- Bank Details & Ledger Table Section (Initially Hidden) -->
-        <div class="card shadow-sm border-0 bg-white rounded-4 overflow-hidden mb-4 hidden-section" id="bankLedgerSection">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
-                <h5 class="mb-0 text-truncate" id="selectedBankTitle"><i class="fa-solid fa-book-open text-warning"></i> Transactions</h5>
+        <!-- Bank Transactions Table Section -->
+        <div class="card shadow-sm border-0 bg-white rounded-4 overflow-hidden mb-4 hidden-section" id="ledgerSection">
+            <div class="card-header bg-dark text-white py-3">
+                <h5 class="mb-0 text-truncate" id="selectedBankTitle"><i class="fa-solid fa-book text-warning"></i> Bank Transactions</h5>
             </div>
             
             <div class="table-responsive p-1">
                 <table class="table table-bordered table-striped align-middle mb-0" style="min-width: 850px;">
                     <thead class="table-secondary text-center">
                         <tr>
-                            <th class="sr-col">Sr.No.</th>
-                            <th class="date-col">Date</th>
-                            <th class="desc-col">Description</th>
-                            <th class="sender-col">Sender</th>
-                            <th class="amount-col">Amount</th>
-                            <th class="total-col">Total</th>
+                            <th>Sr.No.</th>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Party / Customer</th>
+                            <th>Deposit (In)</th>
+                            <th>Withdraw (Out)</th>
+                            <th>Balance</th>
                         </tr>
                     </thead>
-                    <tbody id="ledgerTableBody">
-                        <!-- Dynamic records will load here -->
+                    <tbody id="bankTableBody">
+                        <!-- Dynamic rows will load here -->
                     </tbody>
                 </table>
             </div>
@@ -111,7 +104,7 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Firebase SDK & App Logic -->
+    <!-- Firebase SDK & Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -130,15 +123,13 @@
         const db = getDatabase(app);
 
         const bankDropdown = document.getElementById('bankDropdown');
-        const bankLedgerSection = document.getElementById('bankLedgerSection');
+        const ledgerSection = document.getElementById('ledgerSection');
         const selectedBankTitle = document.getElementById('selectedBankTitle');
-        const ledgerTableBody = document.getElementById('ledgerTableBody');
+        const bankTableBody = document.getElementById('bankTableBody');
 
         let globalDbData = null;
-        let selectedBankKey = "";
         let selectedBankName = "";
 
-        // Format date from yyyy-mm-dd to dd-mm-yyyy for display
         function formatDateToDisplay(dateStr) {
             if (!dateStr) return '-';
             const parts = dateStr.split('-');
@@ -148,77 +139,110 @@
             return dateStr;
         }
 
-        // 1. Load Bank Accounts into Dropdown from Firebase (`bank_accounts`)
+        // 1. Load Bank Accounts into Dropdown
         onValue(ref(db, 'bank_accounts'), (snapshot) => {
             const data = snapshot.val();
             bankDropdown.innerHTML = '<option value="" selected disabled>-- Select Bank Account --</option>';
-            
             if (data) {
-                Object.keys(data).forEach((key) => {
+                Object.keys(data).forEach(key => {
                     const b = data[key];
+                    const fullTitle = `${b.title} (${b.bankName})`;
                     const option = document.createElement('option');
-                    option.value = key;
-                    option.textContent = `${b.title} (${b.bankName}) - A/C: ${b.accountNumber || 'N/A'}`;
+                    option.value = fullTitle;
+                    option.textContent = fullTitle;
                     bankDropdown.appendChild(option);
                 });
             }
         });
 
-        // 2. Fetch full database for transactions matching selected bank
+        // 2. Listen to Database Live Updates
         onValue(ref(db, '/'), (snapshot) => {
             globalDbData = snapshot.val();
-            if (selectedBankKey) {
-                renderBankTransactions();
+            if (selectedBankName) {
+                renderBankLedger();
             }
         });
 
-        // 3. When a bank account is selected from dropdown
+        // 3. Handle Bank Selection
         bankDropdown.addEventListener('change', (e) => {
-            selectedBankKey = e.target.value;
-            selectedBankName = bankDropdown.options[bankDropdown.selectedIndex].text;
-
-            if (selectedBankKey) {
-                bankLedgerSection.classList.remove('hidden-section');
-                selectedBankTitle.innerHTML = `<i class="fa-solid fa-building-columns text-warning"></i> Transactions for: <strong>${selectedBankName}</strong>`;
-                renderBankTransactions();
+            selectedBankName = e.target.value;
+            if (selectedBankName) {
+                ledgerSection.classList.remove('hidden-section');
+                selectedBankTitle.innerHTML = `<i class="fa-solid fa-book text-warning"></i> Transactions for: <strong>${selectedBankName}</strong>`;
+                renderBankLedger();
             }
         });
 
-        // Render transactions for the selected bank
-        function renderBankTransactions() {
-            ledgerTableBody.innerHTML = '';
-            if (!globalDbData) {
-                ledgerTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No records found.</td></tr>`;
-                return;
+        // Render Bank Ledger Transactions
+        function renderBankLedger() {
+            bankTableBody.innerHTML = '';
+            if (!globalDbData || !selectedBankName) return;
+
+            let transactions = [];
+            const searchName = selectedBankName.trim().toLowerCase();
+
+            // A. Check in Receipts (Deposits into bank)
+            if (globalDbData.receipts) {
+                Object.keys(globalDbData.receipts).forEach(rKey => {
+                    const item = globalDbData.receipts[rKey];
+                    if (item && typeof item === 'object') {
+                        const accStr = (item.account || item.receiver || '').trim().toLowerCase();
+                        if (accStr.includes(searchName) || searchName.includes(accStr)) {
+                            const amt = parseFloat(item.amount) || 0;
+                            if (amt > 0) {
+                                transactions.push({
+                                    date: item.date || '',
+                                    description: item.description || 'Receipt Deposit',
+                                    party: item.customer || '-',
+                                    deposit: amt,
+                                    withdraw: 0
+                                });
+                            }
+                        }
+                    }
+                });
             }
 
-            const customersMap = globalDbData.customers || {};
-            const banksMap = globalDbData.bank_accounts || {};
-            let allTransactions = [];
+            // B. Check in Payments (Withdrawals / Money sent from bank)
+            if (globalDbData.payments) {
+                Object.keys(globalDbData.payments).forEach(pKey => {
+                    const item = globalDbData.payments[pKey];
+                    if (item && typeof item === 'object') {
+                        const accStr = (item.account || item.sender || '').trim().toLowerCase();
+                        if (accStr.includes(searchName) || searchName.includes(accStr)) {
+                            const amt = parseFloat(item.amount) || 0;
+                            if (amt > 0) {
+                                transactions.push({
+                                    date: item.date || '',
+                                    description: item.description || 'Payment Out',
+                                    party: item.receiver || '-',
+                                    deposit: 0,
+                                    withdraw: amt
+                                });
+                            }
+                        }
+                    }
+                });
+            }
 
-            const currentBankObj = banksMap[selectedBankKey] || {};
-            const bankTitleQuery = currentBankObj.title ? currentBankObj.title.trim().toLowerCase() : "";
-
-            // Search in customer ledgers where method matches this bank account
-            if (globalDbData.customer_ledgers) {
-                Object.keys(globalDbData.customer_ledgers).forEach(custKey => {
-                    const custObj = customersMap[custKey];
-                    const custTitle = custObj ? `[${custObj.code}] ${custObj.name}` : 'Customer';
-                    const custTrans = globalDbData.customer_ledgers[custKey];
-
-                    if (custTrans && typeof custTrans === 'object') {
-                        Object.keys(custTrans).forEach(tKey => {
-                            const item = custTrans[tKey];
+            // C. Check in old/direct bank_ledger nodes if any exist
+            const bankLedgerNode = globalDbData.bank_ledger || globalDbData.bank_ledgers;
+            if (bankLedgerNode) {
+                Object.keys(bankLedgerNode).forEach(bKey => {
+                    const nodeVal = bankLedgerNode[bKey];
+                    if (nodeVal && typeof nodeVal === 'object') {
+                        Object.keys(nodeVal).forEach(tKey => {
+                            const item = nodeVal[tKey];
                             if (item && typeof item === 'object') {
-                                const amountReceived = parseFloat(item.amountReceived) || 0;
-                                const itemMethod = (item.method || "").trim().toLowerCase();
-
-                                if (amountReceived > 0 && itemMethod && bankTitleQuery && itemMethod.includes(bankTitleQuery)) {
-                                    allTransactions.push({
+                                const dep = parseFloat(item.amountReceived || item.deposit || item.credit || 0) || 0;
+                                const wit = parseFloat(item.amountSend || item.withdraw || item.debit || 0) || 0;
+                                if (dep > 0 || wit > 0) {
+                                    transactions.push({
                                         date: item.date || '',
-                                        description: item.description || 'Bank Transfer Received',
-                                        sender: custTitle,
-                                        amount: amountReceived
+                                        description: item.description || 'Bank Transaction',
+                                        party: item.sender || item.receiver || '-',
+                                        deposit: dep,
+                                        withdraw: wit
                                     });
                                 }
                             }
@@ -227,57 +251,33 @@
                 });
             }
 
-            // Search in direct bank ledger nodes
-            const bankLedgerNode = globalDbData.bank_ledger || globalDbData.bank_ledgers;
-            if (bankLedgerNode && bankLedgerNode[selectedBankKey]) {
-                const nodeVal = bankLedgerNode[selectedBankKey];
-                if (nodeVal && typeof nodeVal === 'object') {
-                    Object.keys(nodeVal).forEach(tKey => {
-                        const item = nodeVal[tKey];
-                        if (item && typeof item === 'object') {
-                            const deposit = parseFloat(item.amountReceived || item.received || item.deposit || item.credit || 0) || 0;
-                            if (deposit > 0) {
-                                allTransactions.push({
-                                    date: item.date || '',
-                                    description: item.description || item.particulars || 'Bank Deposit',
-                                    sender: item.sender || 'Source',
-                                    amount: deposit
-                                });
-                            }
-                        }
-                    });
-                }
-            }
-
             // Sort chronologically by Date
-            allTransactions.sort((a, b) => {
+            transactions.sort((a, b) => {
                 if (!a.date) return 1;
                 if (!b.date) return -1;
                 return new Date(a.date) - new Date(b.date);
             });
 
-            // Render rows & calculate Running Total
-            if (allTransactions.length > 0) {
+            if (transactions.length > 0) {
+                let runningBalance = 0;
                 let index = 1;
-                let runningTotal = 0;
 
-                allTransactions.forEach(t => {
-                    runningTotal += t.amount;
-                    const displayDate = formatDateToDisplay(t.date);
-
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="fw-bold text-center sr-col">${index++}</td>
-                        <td class="date-col">${displayDate}</td>
-                        <td class="desc-col">${t.description}</td>
-                        <td class="sender-col">${t.sender}</td>
-                        <td class="fw-semibold text-success amount-col">${t.amount ? t.amount.toLocaleString() : '-'}</td>
-                        <td class="fw-bold total-col">${runningTotal.toLocaleString()}</td>
+                transactions.forEach(t => {
+                    runningBalance += (t.deposit - t.withdraw);
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="text-center fw-bold">${index++}</td>
+                        <td class="text-center">${formatDateToDisplay(t.date)}</td>
+                        <td>${t.description}</td>
+                        <td>${t.party}</td>
+                        <td class="text-end text-success fw-semibold">${t.deposit ? t.deposit.toLocaleString() : '-'}</td>
+                        <td class="text-end text-danger fw-semibold">${t.withdraw ? t.withdraw.toLocaleString() : '-'}</td>
+                        <td class="text-end fw-bold">${runningBalance.toLocaleString()}</td>
                     `;
-                    ledgerTableBody.appendChild(row);
+                    bankTableBody.appendChild(tr);
                 });
             } else {
-                ledgerTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">No transactions found for this bank account.</td></tr>`;
+                bankTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">No transactions found for this bank account.</td></tr>`;
             }
         }
     </script>

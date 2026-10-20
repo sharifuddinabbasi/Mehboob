@@ -122,7 +122,6 @@
 
         const ledgerTableBody = document.getElementById('ledgerTableBody');
 
-        // Format date from yyyy-mm-dd to dd-mm-yyyy for display
         function formatDateToDisplay(dateStr) {
             if (!dateStr) return '-';
             const parts = dateStr.split('-');
@@ -132,7 +131,6 @@
             return dateStr;
         }
 
-        // Read database to aggregate transactions
         onValue(ref(db, '/'), (snapshot) => {
             const dbData = snapshot.val();
             ledgerTableBody.innerHTML = '';
@@ -142,91 +140,20 @@
                 return;
             }
 
-            const customersMap = dbData.customers || {};
-            const banksMap = dbData.bank_accounts || {};
             let allTransactions = [];
 
-            // 1. Read from Customer Ledgers (Only Amount Received from customers)
-            if (dbData.customer_ledgers) {
-                Object.keys(dbData.customer_ledgers).forEach(custKey => {
-                    const custObj = customersMap[custKey];
-                    const custTitle = custObj ? `[${custObj.code}] ${custObj.name}` : 'Customer';
-                    const custTrans = dbData.customer_ledgers[custKey];
-
-                    if (custTrans && typeof custTrans === 'object') {
-                        Object.keys(custTrans).forEach(tKey => {
-                            const item = custTrans[tKey];
-                            if (item && typeof item === 'object') {
-                                const amountReceived = parseFloat(item.amountReceived) || 0;
-
-                                if (amountReceived > 0) {
-                                    allTransactions.push({
-                                        date: item.date || '',
-                                        description: item.description || 'Payment Received',
-                                        sender: custTitle,
-                                        receiver: item.method || 'Company Account',
-                                        amountReceived: amountReceived,
-                                        amountSend: 0
-                                    });
-                                }
-                            }
-                        });
-                    }
-                });
-            }
-
-            // 2. Read from Bank deposits / Withdrawals
-            const bankLedgerNode = dbData.bank_ledger || dbData.bank_ledgers;
-            if (bankLedgerNode) {
-                Object.keys(bankLedgerNode).forEach(bKey => {
-                    const nodeVal = bankLedgerNode[bKey];
-                    if (nodeVal && typeof nodeVal === 'object' && !nodeVal.date && !nodeVal.description) {
-                        const bankObj = banksMap[bKey];
-                        const bankTitle = bankObj ? `${bankObj.title} (${bankObj.bankName})` : 'Bank';
-                        Object.keys(nodeVal).forEach(tKey => {
-                            const item = nodeVal[tKey];
-                            if (item && typeof item === 'object') {
-                                const deposit = parseFloat(item.amountReceived || item.received || item.deposit || item.credit || 0) || 0;
-                                const withdraw = parseFloat(item.amountSend || item.send || item.paid || item.withdraw || item.debit || 0) || 0;
-
-                                if (deposit > 0) {
-                                    allTransactions.push({
-                                        date: item.date || '',
-                                        description: item.description || item.particulars || 'Bank Deposit',
-                                        sender: item.sender || 'Source',
-                                        receiver: bankTitle,
-                                        amountReceived: deposit,
-                                        amountSend: 0
-                                    });
-                                }
-                                if (withdraw > 0) {
-                                    allTransactions.push({
-                                        date: item.date || '',
-                                        description: item.description || item.particulars || 'Bank Withdraw/Send',
-                                        sender: bankTitle,
-                                        receiver: item.receiver || 'Vendor/Expense',
-                                        amountReceived: 0,
-                                        amountSend: withdraw
-                                    });
-                                }
-                            }
-                        });
-                    }
-                });
-            }
-
-            // 3. Read from Receipts
+            // 1. Read from Receipts (Amount Received from Customer into Account)
             if (dbData.receipts) {
                 Object.keys(dbData.receipts).forEach(rKey => {
                     const item = dbData.receipts[rKey];
                     if (item && typeof item === 'object') {
-                        const amt = parseFloat(item.amountReceived || item.amount || item.received || 0) || 0;
+                        const amt = parseFloat(item.amount) || 0;
                         if (amt > 0) {
                             allTransactions.push({
                                 date: item.date || '',
-                                description: item.description || item.particulars || 'Receipt',
-                                sender: item.sender || 'Receipt Source',
-                                receiver: item.receiver || 'Company',
+                                description: item.description || 'Receipt',
+                                sender: item.customer || item.sender || 'Customer',
+                                receiver: item.account || item.receiver || 'Company Account',
                                 amountReceived: amt,
                                 amountSend: 0
                             });
@@ -235,18 +162,18 @@
                 });
             }
 
-            // 4. Read from Payments (Money sent from Bank/Cash to someone)
+            // 2. Read from Payments (Amount Sent from Account to Receiver/Expense)
             if (dbData.payments) {
                 Object.keys(dbData.payments).forEach(pKey => {
                     const item = dbData.payments[pKey];
                     if (item && typeof item === 'object') {
-                        const amt = parseFloat(item.amountSend || item.amount || item.paid || 0) || 0;
+                        const amt = parseFloat(item.amount) || 0;
                         if (amt > 0) {
                             allTransactions.push({
                                 date: item.date || '',
-                                description: item.description || item.particulars || 'Payment Out',
-                                sender: item.sender || 'Company/Bank/Cash',
-                                receiver: item.receiver || 'Payment Destination',
+                                description: item.description || 'Payment Out',
+                                sender: item.account || item.sender || 'Company Account',
+                                receiver: item.receiver || item.customer || 'Expense/Vendor',
                                 amountReceived: 0,
                                 amountSend: amt
                             });
@@ -255,34 +182,39 @@
                 });
             }
 
-            // 5. Read from Cash in Hand
-            if (dbData.cash_in_hand) {
-                Object.keys(dbData.cash_in_hand).forEach(cKey => {
-                    const item = dbData.cash_in_hand[cKey];
-                    if (item && typeof item === 'object') {
-                        const deposit = parseFloat(item.amountReceived || item.received || item.deposit || 0) || 0;
-                        const withdraw = parseFloat(item.amountSend || item.send || item.paid || item.expense || 0) || 0;
+            // 3. Read from Customer Ledgers
+            if (dbData.customer_ledgers) {
+                Object.keys(dbData.customer_ledgers).forEach(custKey => {
+                    const custTrans = dbData.customer_ledgers[custKey];
+                    if (custTrans && typeof custTrans === 'object') {
+                        Object.keys(custTrans).forEach(tKey => {
+                            const item = custTrans[tKey];
+                            if (item && typeof item === 'object') {
+                                const amountReceived = parseFloat(item.amountReceived) || 0;
+                                const amountSent = parseFloat(item.amount) || 0;
 
-                        if (deposit > 0) {
-                            allTransactions.push({
-                                date: item.date || '',
-                                description: item.description || item.particulars || 'Cash In',
-                                sender: item.sender || 'Cash Source',
-                                receiver: 'Cash in Hand',
-                                amountReceived: deposit,
-                                amountSend: 0
-                            });
-                        }
-                        if (withdraw > 0) {
-                            allTransactions.push({
-                                date: item.date || '',
-                                description: item.description || item.particulars || 'Cash Out/Expense',
-                                sender: 'Cash in Hand',
-                                receiver: item.receiver || 'Expense/Vendor',
-                                amountReceived: 0,
-                                amountSend: withdraw
-                            });
-                        }
+                                if (amountReceived > 0) {
+                                    allTransactions.push({
+                                        date: item.date || '',
+                                        description: item.description || 'Payment Received',
+                                        sender: item.customer || 'Customer',
+                                        receiver: item.method || 'Company Account',
+                                        amountReceived: amountReceived,
+                                        amountSend: 0
+                                    });
+                                }
+                                if (amountSent > 0) {
+                                    allTransactions.push({
+                                        date: item.date || '',
+                                        description: item.description || 'Fuel/Item Sale',
+                                        sender: 'Company',
+                                        receiver: item.customer || 'Customer',
+                                        amountReceived: 0,
+                                        amountSend: amountSent
+                                    });
+                                }
+                            }
+                        });
                     }
                 });
             }
@@ -294,7 +226,7 @@
                 return new Date(a.date) - new Date(b.date);
             });
 
-            // Render rows & calculate Running Total (Received adds, Send subtracts)
+            // Render rows & calculate Running Total
             if (allTransactions.length > 0) {
                 let index = 1;
                 let runningTotal = 0;
