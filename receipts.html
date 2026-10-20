@@ -9,66 +9,27 @@
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            background-color: #f4f7f6;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .header-section {
-            background: linear-gradient(135deg, #0f5132, #198754);
-            color: white;
-            padding: 20px;
-            border-bottom: 5px solid #ffc107;
-        }
-        .table-responsive {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        table th, table td {
-            font-size: 11px !important;
-            vertical-align: middle !important;
-            padding: 4px 2px !important;
-        }
-        .form-control-sm, .form-select-sm {
-            font-size: 11px !important;
-            padding: 3px 4px !important;
-        }
-        .editable-cell {
-            cursor: pointer;
-            user-select: none;
-        }
-        .editable-cell:hover {
-            background-color: #e9ecef !important;
-        }
-        .edit-input {
-            width: 100%;
-            font-size: 11px;
-            padding: 2px 4px;
-            box-sizing: border-box;
-        }
-        .footer {
-            background-color: #212529;
-            color: #adb5bd;
-            padding: 20px 0;
-            text-align: center;
-            margin-top: 50px;
-        }
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .header-section { background: linear-gradient(135deg, #0f5132, #198754); color: white; padding: 20px; border-bottom: 5px solid #ffc107; }
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table th, table td { font-size: 11px !important; vertical-align: middle !important; padding: 4px 2px !important; }
+        .form-control-sm, .form-select-sm { font-size: 11px !important; padding: 3px 4px !important; }
+        .editable-cell { cursor: pointer; user-select: none; }
+        .editable-cell:hover { background-color: #e9ecef !important; }
+        .edit-input { width: 100%; font-size: 11px; padding: 2px 4px; box-sizing: border-box; }
+        .footer { background-color: #212529; color: #adb5bd; padding: 20px 0; text-align: center; margin-top: 50px; }
     </style>
 </head>
 <body>
 
-    <!-- Header Section -->
     <div class="header-section text-center">
         <div class="container d-flex justify-content-between align-items-center flex-wrap">
             <h2 class="fw-bold mb-0"><i class="fa-solid fa-file-invoice-dollar text-warning"></i> Receipts Account</h2>
-            <a href="index.html" class="btn btn-secondary rounded-pill px-4 btn-sm">
-                <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
-            </a>
+            <a href="index.html" class="btn btn-secondary rounded-pill px-4 btn-sm"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
         </div>
     </div>
 
-    <!-- Content Section -->
     <div class="container-fluid my-4 px-2" style="max-width: 1300px;">
-        
         <div class="card shadow-sm border-0 bg-white rounded-4 overflow-hidden mb-4">
             <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
                 <h5 class="mb-0"><i class="fa-solid fa-book-open text-warning"></i> Receipts List & Entry</h5>
@@ -85,30 +46,21 @@
                             <th style="width: 18%;">Customer</th>
                             <th style="width: 10%;">Amount</th>
                             <th style="width: 10%;">Method</th>
-                            <th style="width: 16%;">Accounts</th>
+                            <th style="width: 16%;">Account</th>
                             <th style="width: 5%;">Action</th>
                         </tr>
                     </thead>
-                    <tbody id="receiptTableBody">
-                        <!-- Data rows will load on top, Input row will be at the bottom -->
-                    </tbody>
+                    <tbody id="receiptTableBody"></tbody>
                 </table>
             </div>
         </div>
-
     </div>
 
-    <!-- Footer -->
     <footer class="footer">
-        <div class="container">
-            <p class="mb-0">&copy; 2026 Khan Petroleum Services Limited. All Rights Reserved. By Mehboob Ali.</p>
-        </div>
+        <div class="container"><p class="mb-0">&copy; 2026 Khan Petroleum Services Limited. All Rights Reserved. By Mehboob Ali.</p></div>
     </footer>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Firebase SDK & Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getDatabase, ref, onValue, push, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -123,36 +75,19 @@
             measurementId: "G-GVB8XSJNJX"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        const db = getDatabase(initializeApp(firebaseConfig));
+        let customersList = [], accountsList = [];
 
-        let customersList = [];
-        let accountsList = ["Cash in Hand"];
-
-        // Load Customers and Accounts for dropdowns during editing
         onValue(ref(db, 'customers'), (snap) => {
-            const data = snap.val();
             customersList = [];
-            if (data) {
-                Object.keys(data).forEach(k => {
-                    const c = data[k];
-                    customersList.push(`[${c.code || ''}] ${c.name}`);
-                });
-            }
+            if (snap.val()) Object.keys(snap.val()).forEach(k => customersList.push(`[${snap.val()[k].code || ''}] ${snap.val()[k].name}`));
         });
 
         onValue(ref(db, 'bank_accounts'), (snap) => {
-            const data = snap.val();
-            accountsList = ["Cash in Hand"];
-            if (data) {
-                Object.keys(data).forEach(k => {
-                    const b = data[k];
-                    accountsList.push(`${b.title} (${b.bankName})`);
-                });
-            }
+            accountsList = [];
+            if (snap.val()) Object.keys(snap.val()).forEach(k => accountsList.push(`${snap.val()[k].title} (${snap.val()[k].bankName})`));
         });
 
-        // Load Receipts Table
         onValue(ref(db, 'receipts'), (snapshot) => {
             const data = snapshot.val();
             const tbody = document.getElementById('receiptTableBody');
@@ -172,67 +107,31 @@
                         <td class="text-end text-success fw-semibold editable-cell" data-id="${k}" data-field="amount" data-val="${amt}">${amt ? amt.toLocaleString() : '0'}</td>
                         <td class="text-center editable-cell" data-id="${k}" data-field="method" data-val="${item.method || ''}">${item.method || '-'}</td>
                         <td class="editable-cell" data-id="${k}" data-field="account" data-val="${item.account || ''}">${item.account || '-'}</td>
-                        <td class="text-center">
-                            <button class="btn btn-danger btn-sm py-0 px-2 delete-btn" data-id="${k}"><i class="fa-solid fa-trash"></i></button>
-                        </td>
+                        <td class="text-center"><button class="btn btn-danger btn-sm py-0 px-2 delete-btn" data-id="${k}"><i class="fa-solid fa-trash"></i></button></td>
                     `;
                     tbody.appendChild(tr);
                 });
             }
 
-            // Append Input Row at the BOTTOM
             const inputTr = document.createElement('tr');
             inputTr.className = "table-light";
             inputTr.innerHTML = `
                 <td class="text-center text-muted fw-bold">+</td>
                 <td><input type="date" class="form-control form-control-sm" id="inputDate" value="${new Date().toISOString().split('T')[0]}"></td>
                 <td><input type="text" class="form-control form-control-sm" id="inputDesc" placeholder="Description"></td>
-                <td>
-                    <select class="form-select form-select-sm" id="inputCustomer">
-                        <option value="" selected disabled>-- Select Customer --</option>
-                    </select>
-                </td>
+                <td><select class="form-select form-select-sm" id="inputCustomer"><option value="" selected disabled>-- Customer --</option></select></td>
                 <td><input type="number" class="form-control form-control-sm" id="inputAmount" placeholder="Amount"></td>
-                <td>
-                    <select class="form-select form-select-sm" id="inputMethod">
-                        <option value="Cash">Cash</option>
-                        <option value="Cheque">Cheque</option>
-                        <option value="Card">Card</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </td>
-                <td>
-                    <select class="form-select form-select-sm" id="inputAccount">
-                        <option value="" selected disabled>-- Account --</option>
-                        <option value="Cash in Hand">Cash in Hand</option>
-                    </select>
-                </td>
-                <td class="text-center">
-                    <button class="btn btn-success btn-sm py-1 px-3 fw-bold" id="addBtn">Add</button>
-                </td>
+                <td><select class="form-select form-select-sm" id="inputMethod"><option value="Cash">Cash</option><option value="Cheque">Cheque</option><option value="Card">Card</option><option value="Other">Other</option></select></td>
+                <td><select class="form-select form-select-sm" id="inputAccount"><option value="" selected disabled>-- Account --</option></select></td>
+                <td class="text-center"><button class="btn btn-success btn-sm py-1 px-3 fw-bold" id="addBtn">Add</button></td>
             `;
             tbody.appendChild(inputTr);
 
-            // Populate Dropdowns in Input Row
             const custSelect = document.getElementById('inputCustomer');
-            customersList.forEach(cName => {
-                const opt = document.createElement('option');
-                opt.value = cName;
-                opt.textContent = cName;
-                custSelect.appendChild(opt);
-            });
-
+            customersList.forEach(c => custSelect.appendChild(new Option(c, c)));
             const accSelect = document.getElementById('inputAccount');
-            accountsList.forEach(acc => {
-                if (acc !== "Cash in Hand") {
-                    const opt = document.createElement('option');
-                    opt.value = acc;
-                    opt.textContent = acc;
-                    accSelect.appendChild(opt);
-                }
-            });
+            accountsList.forEach(acc => accSelect.appendChild(new Option(acc, acc)));
 
-            // Add Button Event
             document.getElementById('addBtn').addEventListener('click', () => {
                 const date = document.getElementById('inputDate').value;
                 const customer = document.getElementById('inputCustomer').value;
@@ -241,103 +140,42 @@
                 const account = document.getElementById('inputAccount').value;
                 const description = document.getElementById('inputDesc').value || 'Receipt';
 
-                if (!customer || amount <= 0 || !account) {
-                    alert("Baraye karam Customer, Amount aur Account zaroor select/enter karein!");
-                    return;
-                }
-
-                const newEntry = { date, customer, amount, method, account, description };
-                push(ref(db, 'receipts'), newEntry);
+                if (!customer || amount <= 0 || !account) { alert("Baraye karam Customer, Amount aur Account zaroor select/enter karein!"); return; }
+                push(ref(db, 'receipts'), { date, customer, amount, method, account, description });
             });
 
-            // Delete Event
             document.querySelectorAll('.delete-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const id = e.currentTarget.getAttribute('data-id');
-                    if (confirm("Kya aap is entry ko delete karna chahte hain?")) {
-                        remove(ref(db, `receipts/${id}`));
-                    }
+                    if (confirm("Kya aap is entry ko delete karna chahte hain?")) remove(ref(db, `receipts/${e.currentTarget.getAttribute('data-id')}`));
                 });
             });
 
-            // Attach Double Click Editing Events
-            attachInlineEditEvents();
-        });
-
-        function attachInlineEditEvents() {
             document.querySelectorAll('.editable-cell').forEach(cell => {
                 cell.addEventListener('dblclick', () => {
                     if (cell.querySelector('input, select')) return;
-
-                    const id = cell.getAttribute('data-id');
-                    const field = cell.getAttribute('data-field');
-                    const currentVal = cell.getAttribute('data-val') || '';
-
-                    let inputEl;
-                    if (field === 'date') {
-                        inputEl = document.createElement('input');
-                        inputEl.type = 'date';
-                        inputEl.className = 'form-control form-control-sm edit-input';
-                        inputEl.value = currentVal;
-                    } else if (field === 'customer') {
+                    const id = cell.getAttribute('data-id'), field = cell.getAttribute('data-field'), currentVal = cell.getAttribute('data-val') || '';
+                    let inputEl = document.createElement('input');
+                    inputEl.className = 'form-control form-control-sm edit-input';
+                    if (field === 'date') inputEl.type = 'date', inputEl.value = currentVal;
+                    else if (field === 'amount') inputEl.type = 'number', inputEl.value = currentVal;
+                    else if (field === 'customer' || field === 'account' || field === 'method') {
                         inputEl = document.createElement('select');
                         inputEl.className = 'form-select form-select-sm edit-input';
-                        customersList.forEach(c => {
-                            const opt = document.createElement('option');
-                            opt.value = c;
-                            opt.textContent = c;
-                            if (c === currentVal) opt.selected = true;
-                            inputEl.appendChild(opt);
-                        });
-                    } else if (field === 'account') {
-                        inputEl = document.createElement('select');
-                        inputEl.className = 'form-select form-select-sm edit-input';
-                        accountsList.forEach(acc => {
-                            const opt = document.createElement('option');
-                            opt.value = acc;
-                            opt.textContent = acc;
-                            if (acc === currentVal) opt.selected = true;
-                            inputEl.appendChild(opt);
-                        });
-                    } else if (field === 'method') {
-                        inputEl = document.createElement('select');
-                        inputEl.className = 'form-select form-select-sm edit-input';
-                        ['Cash', 'Cheque', 'Card', 'Other'].forEach(m => {
-                            const opt = document.createElement('option');
-                            opt.value = m;
-                            opt.textContent = m;
-                            if (m === currentVal) opt.selected = true;
-                            inputEl.appendChild(opt);
-                        });
-                    } else {
-                        inputEl = document.createElement('input');
-                        inputEl.type = field === 'amount' ? 'number' : 'text';
-                        inputEl.className = 'form-control form-control-sm edit-input';
-                        inputEl.value = currentVal;
-                    }
+                        let list = field === 'customer' ? customersList : (field === 'account' ? accountsList : ['Cash', 'Cheque', 'Card', 'Other']);
+                        list.forEach(item => { const opt = new Option(item, item); if (item === currentVal) opt.selected = true; inputEl.appendChild(opt); });
+                    } else inputEl.value = currentVal;
 
-                    cell.innerHTML = '';
-                    cell.appendChild(inputEl);
-                    inputEl.focus();
-
-                    const saveChanges = () => {
+                    cell.innerHTML = ''; cell.appendChild(inputEl); inputEl.focus();
+                    const save = () => {
                         const newVal = inputEl.value.trim();
-                        if (newVal !== currentVal) {
-                            const updateObj = {};
-                            updateObj[field] = field === 'amount' ? (parseFloat(newVal) || 0) : newVal;
-                            update(ref(db, `receipts/${id}`), updateObj);
-                        } else {
-                            cell.textContent = field === 'amount' ? parseFloat(currentVal).toLocaleString() : currentVal;
-                        }
+                        if (newVal !== currentVal) update(ref(db, `receipts/${id}`), { [field]: field === 'amount' ? (parseFloat(newVal) || 0) : newVal });
+                        else cell.textContent = field === 'amount' ? parseFloat(currentVal).toLocaleString() : currentVal;
                     };
-
-                    inputEl.addEventListener('blur', saveChanges);
-                    inputEl.addEventListener('keydown', (e) => {
-                        if (e.key === 'Enter') inputEl.blur();
-                    });
+                    inputEl.addEventListener('blur', save);
+                    inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') inputEl.blur(); });
                 });
             });
-        }
+        });
     </script>
 </body>
 </html>

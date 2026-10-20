@@ -4,54 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cash in Hand Ledger - Khan Petroleum Services Limited</title>
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            background-color: #f4f7f6;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .header-section {
-            background: linear-gradient(135deg, #0f5132, #198754);
-            color: white;
-            padding: 20px;
-            border-bottom: 5px solid #ffc107;
-        }
-        .table-responsive {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        table th, table td {
-            font-size: 12px !important;
-            vertical-align: middle !important;
-            padding: 6px 4px !important;
-        }
-        .footer {
-            background-color: #212529;
-            color: #adb5bd;
-            padding: 20px 0;
-            text-align: center;
-            margin-top: 50px;
-        }
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .header-section { background: linear-gradient(135deg, #0f5132, #198754); color: white; padding: 20px; border-bottom: 5px solid #ffc107; }
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table th, table td { font-size: 12px !important; vertical-align: middle !important; padding: 6px 4px !important; }
+        .footer { background-color: #212529; color: #adb5bd; padding: 20px 0; text-align: center; margin-top: 50px; }
     </style>
 </head>
 <body>
 
-    <!-- Header Section -->
     <div class="header-section text-center">
         <div class="container d-flex justify-content-between align-items-center flex-wrap">
             <h2 class="fw-bold mb-0"><i class="fa-solid fa-wallet text-warning"></i> Cash in Hand Ledger</h2>
-            <a href="index.html" class="btn btn-secondary rounded-pill px-4 btn-sm">
-                <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
-            </a>
+            <a href="index.html" class="btn btn-secondary rounded-pill px-4 btn-sm"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
         </div>
     </div>
 
-    <!-- Content Section -->
     <div class="container-fluid my-4 px-3" style="max-width: 1100px;">
-        
         <div class="card shadow-sm border-0 bg-white rounded-4 overflow-hidden mb-4">
             <div class="card-header bg-dark text-white py-3">
                 <h5 class="mb-0"><i class="fa-solid fa-book text-warning"></i> Cash Transactions</h5>
@@ -61,13 +33,7 @@
                 <table class="table table-bordered table-striped align-middle mb-0" style="min-width: 850px;">
                     <thead class="table-secondary text-center">
                         <tr>
-                            <th>Sr.No.</th>
-                            <th>Date</th>
-                            <th>Description</th>
-                            <th>Party / Customer</th>
-                            <th>Cash In (Received)</th>
-                            <th>Cash Out (Paid)</th>
-                            <th>Balance</th>
+                            <th>Sr.No.</th><th>Date</th><th>Description</th><th>Party / Customer</th><th>Cash In (Received)</th><th>Cash Out (Paid)</th><th>Balance</th>
                         </tr>
                     </thead>
                     <tbody id="cashTableBody">
@@ -76,20 +42,13 @@
                 </table>
             </div>
         </div>
-
     </div>
 
-    <!-- Footer -->
     <footer class="footer">
-        <div class="container">
-            <p class="mb-0">&copy; 2026 Khan Petroleum Services Limited. All Rights Reserved. By Mehboob Ali.</p>
-        </div>
+        <div class="container"><p class="mb-0">&copy; 2026 Khan Petroleum Services Limited. All Rights Reserved. By Mehboob Ali.</p></div>
     </footer>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Firebase SDK & Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -104,119 +63,58 @@
             measurementId: "G-GVB8XSJNJX"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-
+        const db = getDatabase(initializeApp(firebaseConfig));
         const cashTableBody = document.getElementById('cashTableBody');
 
         function formatDateToDisplay(dateStr) {
             if (!dateStr) return '-';
             const parts = dateStr.split('-');
-            if (parts.length === 3) {
-                return `${parts[2]}-${parts[1]}-${parts[0]}`;
-            }
-            return dateStr;
+            return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : dateStr;
         }
 
         onValue(ref(db, '/'), (snapshot) => {
             const dbData = snapshot.val();
             cashTableBody.innerHTML = '';
-
-            if (!dbData) {
-                cashTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">No cash transactions found.</td></tr>`;
-                return;
-            }
+            if (!dbData) { cashTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">No cash transactions found.</td></tr>`; return; }
 
             let transactions = [];
+            const isCashAcc = (acc) => (acc || '').toLowerCase().includes('cash');
 
-            // 1. Receipts where account is Cash in Hand -> Cash In
+            // 1. Receipts (Cash In)
             if (dbData.receipts) {
-                Object.keys(dbData.receipts).forEach(rKey => {
-                    const item = dbData.receipts[rKey];
-                    if (item && typeof item === 'object') {
-                        const acc = (item.account || '').toLowerCase();
-                        if (acc.includes('cash in hand') || acc === 'cash') {
-                            const amt = parseFloat(item.amount) || 0;
-                            if (amt > 0) {
-                                transactions.push({
-                                    date: item.date || '',
-                                    description: item.description || 'Receipt',
-                                    party: item.customer || '-',
-                                    cashIn: amt,
-                                    cashOut: 0
-                                });
-                            }
-                        }
+                Object.keys(dbData.receipts).forEach(k => {
+                    const item = dbData.receipts[k];
+                    if (item && isCashAcc(item.account) && (parseFloat(item.amount) || 0) > 0) {
+                        transactions.push({ date: item.date || '', description: item.description || 'Receipt', party: item.customer || '-', cashIn: parseFloat(item.amount), cashOut: 0 });
                     }
                 });
             }
 
-            // 2. Payments handling
+            // 2. Payments
             if (dbData.payments) {
-                Object.keys(dbData.payments).forEach(pKey => {
-                    const item = dbData.payments[pKey];
-                    if (item && typeof item === 'object') {
+                Object.keys(dbData.payments).forEach(k => {
+                    const item = dbData.payments[k];
+                    if (item && (parseFloat(item.amount) || 0) > 0) {
                         const acc = (item.account || '').toLowerCase();
                         const receiver = (item.receiver || '').toLowerCase();
-                        const amt = parseFloat(item.amount) || 0;
+                        const amt = parseFloat(item.amount);
 
-                        if (amt > 0) {
-                            // Case A: Bank se Cash Withdraw kiya (From Account = Bank, Receiver = Cash in Hand) -> Cash In
-                            if (!acc.includes('cash') && receiver.includes('cash')) {
-                                transactions.push({
-                                    date: item.date || '',
-                                    description: item.description || 'Cash Withdrawal from Bank',
-                                    party: item.account || 'Bank Account',
-                                    cashIn: amt,
-                                    cashOut: 0
-                                });
-                            }
-                            // Case B: Normal Payment jahan From Account = Cash in Hand ho -> Cash Out
-                            else if (acc.includes('cash in hand') || acc === 'cash') {
-                                transactions.push({
-                                    date: item.date || '',
-                                    description: item.description || 'Payment Expense',
-                                    party: item.receiver || '-',
-                                    cashIn: 0,
-                                    cashOut: amt
-                                });
-                            }
+                        // Case A: Withdraw from Bank to Cash -> Cash In
+                        if (!acc.includes('cash') && receiver.includes('cash')) {
+                            transactions.push({ date: item.date || '', description: item.description || 'Cash Withdrawal', party: item.account || 'Bank', cashIn: amt, cashOut: 0 });
+                        }
+                        // Case B: Cash Paid out -> Cash Out
+                        else if (acc.includes('cash')) {
+                            transactions.push({ date: item.date || '', description: item.description || 'Payment Expense', party: item.receiver || '-', cashIn: 0, cashOut: amt });
                         }
                     }
                 });
             }
 
-            // 3. Old cash_in_hand nodes support
-            if (dbData.cash_in_hand) {
-                Object.keys(dbData.cash_in_hand).forEach(cKey => {
-                    const item = dbData.cash_in_hand[cKey];
-                    if (item && typeof item === 'object') {
-                        const inAmt = parseFloat(item.amountReceived || item.deposit || item.amount || 0) || 0;
-                        const outAmt = parseFloat(item.amountSend || item.withdraw || 0) || 0;
-                        if (inAmt > 0 || outAmt > 0) {
-                            transactions.push({
-                                date: item.date || '',
-                                description: item.description || 'Cash Entry',
-                                party: item.sender || item.receiver || item.customer || '-',
-                                cashIn: inAmt,
-                                cashOut: outAmt
-                            });
-                        }
-                    }
-                });
-            }
-
-            // Sort by Date
-            transactions.sort((a, b) => {
-                if (!a.date) return 1;
-                if (!b.date) return -1;
-                return new Date(a.date) - new Date(b.date);
-            });
+            transactions.sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
 
             if (transactions.length > 0) {
-                let runningBalance = 0;
-                let index = 1;
-
+                let runningBalance = 0, index = 1;
                 transactions.forEach(t => {
                     runningBalance += (t.cashIn - t.cashOut);
                     const tr = document.createElement('tr');

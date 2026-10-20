@@ -139,19 +139,22 @@
             return dateStr;
         }
 
-        // 1. Load Bank Accounts into Dropdown
+        // 1. Load Bank Accounts into Dropdown (Skipping the very first account index 0)
         onValue(ref(db, 'bank_accounts'), (snapshot) => {
             const data = snapshot.val();
             bankDropdown.innerHTML = '<option value="" selected disabled>-- Select Bank Account --</option>';
             if (data) {
-                Object.keys(data).forEach(key => {
+                const keys = Object.keys(data);
+                // Start loop from index 1 to hide the first account (Cash in Hand)
+                for (let i = 1; i < keys.length; i++) {
+                    const key = keys[i];
                     const b = data[key];
                     const fullTitle = `${b.title} (${b.bankName})`;
                     const option = document.createElement('option');
                     option.value = fullTitle;
                     option.textContent = fullTitle;
                     bankDropdown.appendChild(option);
-                });
+                }
             }
         });
 
@@ -173,82 +176,105 @@
             }
         });
 
-        // Render Bank Ledger Transactions
+        // Render Bank Ledger Transactions (Linked with Cash in Hand if first account is selected or searched)
         function renderBankLedger() {
             bankTableBody.innerHTML = '';
-            if (!globalDbData || !selectedBankName) return;
+            if (!globalDbData) return;
 
             let transactions = [];
             const searchName = selectedBankName.trim().toLowerCase();
+            const isCashAccountSelected = searchName.includes('cash') || searchName === '';
 
-            // A. Check in Receipts (Deposits into bank)
-            if (globalDbData.receipts) {
-                Object.keys(globalDbData.receipts).forEach(rKey => {
-                    const item = globalDbData.receipts[rKey];
-                    if (item && typeof item === 'object') {
-                        const accStr = (item.account || item.receiver || '').trim().toLowerCase();
-                        if (accStr.includes(searchName) || searchName.includes(accStr)) {
-                            const amt = parseFloat(item.amount) || 0;
-                            if (amt > 0) {
+            // If first account / Cash in Hand is selected, load cash ledger transactions
+            if (isCashAccountSelected) {
+                const isCashAcc = (acc) => (acc || '').toLowerCase().includes('cash');
+
+                if (globalDbData.receipts) {
+                    Object.keys(globalDbData.receipts).forEach(rKey => {
+                        const item = globalDbData.receipts[rKey];
+                        if (item && isCashAcc(item.account) && (parseFloat(item.amount) || 0) > 0) {
+                            transactions.push({
+                                date: item.date || '',
+                                description: item.description || 'Receipt Cash',
+                                party: item.customer || '-',
+                                deposit: parseFloat(item.amount),
+                                withdraw: 0
+                            });
+                        }
+                    });
+                }
+
+                if (globalDbData.payments) {
+                    Object.keys(globalDbData.payments).forEach(pKey => {
+                        const item = globalDbData.payments[pKey];
+                        if (item && (parseFloat(item.amount) || 0) > 0) {
+                            const acc = (item.account || '').toLowerCase();
+                            const receiver = (item.receiver || '').toLowerCase();
+                            const amt = parseFloat(item.amount);
+
+                            if (!acc.includes('cash') && receiver.includes('cash')) {
                                 transactions.push({
                                     date: item.date || '',
-                                    description: item.description || 'Receipt Deposit',
-                                    party: item.customer || '-',
+                                    description: item.description || 'Cash Withdrawal',
+                                    party: item.account || 'Bank',
                                     deposit: amt,
                                     withdraw: 0
                                 });
-                            }
-                        }
-                    }
-                });
-            }
-
-            // B. Check in Payments (Withdrawals / Money sent from bank)
-            if (globalDbData.payments) {
-                Object.keys(globalDbData.payments).forEach(pKey => {
-                    const item = globalDbData.payments[pKey];
-                    if (item && typeof item === 'object') {
-                        const accStr = (item.account || item.sender || '').trim().toLowerCase();
-                        if (accStr.includes(searchName) || searchName.includes(accStr)) {
-                            const amt = parseFloat(item.amount) || 0;
-                            if (amt > 0) {
+                            } else if (acc.includes('cash')) {
                                 transactions.push({
                                     date: item.date || '',
-                                    description: item.description || 'Payment Out',
+                                    description: item.description || 'Payment Expense',
                                     party: item.receiver || '-',
                                     deposit: 0,
                                     withdraw: amt
                                 });
                             }
                         }
-                    }
-                });
-            }
-
-            // C. Check in old/direct bank_ledger nodes if any exist
-            const bankLedgerNode = globalDbData.bank_ledger || globalDbData.bank_ledgers;
-            if (bankLedgerNode) {
-                Object.keys(bankLedgerNode).forEach(bKey => {
-                    const nodeVal = bankLedgerNode[bKey];
-                    if (nodeVal && typeof nodeVal === 'object') {
-                        Object.keys(nodeVal).forEach(tKey => {
-                            const item = nodeVal[tKey];
-                            if (item && typeof item === 'object') {
-                                const dep = parseFloat(item.amountReceived || item.deposit || item.credit || 0) || 0;
-                                const wit = parseFloat(item.amountSend || item.withdraw || item.debit || 0) || 0;
-                                if (dep > 0 || wit > 0) {
+                    });
+                }
+            } else {
+                // Regular Bank Account Transactions
+                if (globalDbData.receipts) {
+                    Object.keys(globalDbData.receipts).forEach(rKey => {
+                        const item = globalDbData.receipts[rKey];
+                        if (item && typeof item === 'object') {
+                            const accStr = (item.account || item.receiver || '').trim().toLowerCase();
+                            if (accStr.includes(searchName) || searchName.includes(accStr)) {
+                                const amt = parseFloat(item.amount) || 0;
+                                if (amt > 0) {
                                     transactions.push({
                                         date: item.date || '',
-                                        description: item.description || 'Bank Transaction',
-                                        party: item.sender || item.receiver || '-',
-                                        deposit: dep,
-                                        withdraw: wit
+                                        description: item.description || 'Receipt Deposit',
+                                        party: item.customer || '-',
+                                        deposit: amt,
+                                        withdraw: 0
                                     });
                                 }
                             }
-                        });
-                    }
-                });
+                        }
+                    });
+                }
+
+                if (globalDbData.payments) {
+                    Object.keys(globalDbData.payments).forEach(pKey => {
+                        const item = globalDbData.payments[pKey];
+                        if (item && typeof item === 'object') {
+                            const accStr = (item.account || item.sender || '').trim().toLowerCase();
+                            if (accStr.includes(searchName) || searchName.includes(accStr)) {
+                                const amt = parseFloat(item.amount) || 0;
+                                if (amt > 0) {
+                                    transactions.push({
+                                        date: item.date || '',
+                                        description: item.description || 'Payment Out',
+                                        party: item.receiver || '-',
+                                        deposit: 0,
+                                        withdraw: amt
+                                    });
+                                }
+                            }
+                        }
+                    });
+                }
             }
 
             // Sort chronologically by Date
@@ -277,7 +303,7 @@
                     bankTableBody.appendChild(tr);
                 });
             } else {
-                bankTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">No transactions found for this bank account.</td></tr>`;
+                bankTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">No transactions found for this account.</td></tr>`;
             }
         }
     </script>
