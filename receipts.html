@@ -32,6 +32,19 @@
             font-size: 11px !important;
             padding: 3px 4px !important;
         }
+        .editable-cell {
+            cursor: pointer;
+            user-select: none;
+        }
+        .editable-cell:hover {
+            background-color: #e9ecef !important;
+        }
+        .edit-input {
+            width: 100%;
+            font-size: 11px;
+            padding: 2px 4px;
+            box-sizing: border-box;
+        }
         .footer {
             background-color: #212529;
             color: #adb5bd;
@@ -57,8 +70,9 @@
     <div class="container-fluid my-4 px-2" style="max-width: 1300px;">
         
         <div class="card shadow-sm border-0 bg-white rounded-4 overflow-hidden mb-4">
-            <div class="card-header bg-dark text-white py-3">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
                 <h5 class="mb-0"><i class="fa-solid fa-book-open text-warning"></i> Receipts List & Entry</h5>
+                <small class="text-warning"><i class="fa-solid fa-hand-pointer"></i> Double-click any cell to edit & auto-save</small>
             </div>
             
             <div class="table-responsive p-1">
@@ -97,7 +111,7 @@
     <!-- Firebase SDK & Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getDatabase, ref, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+        import { getDatabase, ref, onValue, push, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyD5BLPlTjaDBy6hmPeuedHtCnmcBQozLC4",
@@ -112,26 +126,52 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Load Receipts Table & append input row at the bottom
+        let customersList = [];
+        let accountsList = ["Cash in Hand"];
+
+        // Load Customers and Accounts for dropdowns during editing
+        onValue(ref(db, 'customers'), (snap) => {
+            const data = snap.val();
+            customersList = [];
+            if (data) {
+                Object.keys(data).forEach(k => {
+                    const c = data[k];
+                    customersList.push(`[${c.code || ''}] ${c.name}`);
+                });
+            }
+        });
+
+        onValue(ref(db, 'bank_accounts'), (snap) => {
+            const data = snap.val();
+            accountsList = ["Cash in Hand"];
+            if (data) {
+                Object.keys(data).forEach(k => {
+                    const b = data[k];
+                    accountsList.push(`${b.title} (${b.bankName})`);
+                });
+            }
+        });
+
+        // Load Receipts Table
         onValue(ref(db, 'receipts'), (snapshot) => {
             const data = snapshot.val();
             const tbody = document.getElementById('receiptTableBody');
             tbody.innerHTML = '';
 
-            // 1. Render existing records on top
             if (data) {
                 let index = 1;
                 Object.keys(data).forEach(k => {
                     const item = data[k];
+                    const amt = parseFloat(item.amount) || 0;
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td class="text-center fw-bold">${index++}</td>
-                        <td class="text-center">${item.date || '-'}</td>
-                        <td>${item.description || '-'}</td>
-                        <td>${item.customer || '-'}</td>
-                        <td class="text-end text-success fw-semibold">${item.amount ? item.amount.toLocaleString() : '0'}</td>
-                        <td class="text-center">${item.method || '-'}</td>
-                        <td>${item.account || '-'}</td>
+                        <td class="text-center editable-cell" data-id="${k}" data-field="date" data-val="${item.date || ''}">${item.date || '-'}</td>
+                        <td class="editable-cell" data-id="${k}" data-field="description" data-val="${item.description || ''}">${item.description || '-'}</td>
+                        <td class="editable-cell" data-id="${k}" data-field="customer" data-val="${item.customer || ''}">${item.customer || '-'}</td>
+                        <td class="text-end text-success fw-semibold editable-cell" data-id="${k}" data-field="amount" data-val="${amt}">${amt ? amt.toLocaleString() : '0'}</td>
+                        <td class="text-center editable-cell" data-id="${k}" data-field="method" data-val="${item.method || ''}">${item.method || '-'}</td>
+                        <td class="editable-cell" data-id="${k}" data-field="account" data-val="${item.account || ''}">${item.account || '-'}</td>
                         <td class="text-center">
                             <button class="btn btn-danger btn-sm py-0 px-2 delete-btn" data-id="${k}"><i class="fa-solid fa-trash"></i></button>
                         </td>
@@ -140,7 +180,7 @@
                 });
             }
 
-            // 2. Append Input Row at the BOTTOM
+            // Append Input Row at the BOTTOM
             const inputTr = document.createElement('tr');
             inputTr.className = "table-light";
             inputTr.innerHTML = `
@@ -173,35 +213,24 @@
             `;
             tbody.appendChild(inputTr);
 
-            // Populate Customers Dropdown inside input row
-            onValue(ref(db, 'customers'), (snap) => {
-                const cData = snap.val();
-                const custSelect = document.getElementById('inputCustomer');
-                if (custSelect && cData) {
-                    Object.keys(cData).forEach(k => {
-                        const c = cData[k];
-                        const opt = document.createElement('option');
-                        opt.value = `[${c.code || ''}] ${c.name}`;
-                        opt.textContent = `[${c.code || ''}] ${c.name}`;
-                        custSelect.appendChild(opt);
-                    });
-                }
-            }, { onlyOnce: true });
+            // Populate Dropdowns in Input Row
+            const custSelect = document.getElementById('inputCustomer');
+            customersList.forEach(cName => {
+                const opt = document.createElement('option');
+                opt.value = cName;
+                opt.textContent = cName;
+                custSelect.appendChild(opt);
+            });
 
-            // Populate Accounts Dropdown inside input row
-            onValue(ref(db, 'bank_accounts'), (snap) => {
-                const bData = snap.val();
-                const accSelect = document.getElementById('inputAccount');
-                if (accSelect && bData) {
-                    Object.keys(bData).forEach(k => {
-                        const b = bData[k];
-                        const opt = document.createElement('option');
-                        opt.value = `${b.title} (${b.bankName})`;
-                        opt.textContent = `${b.title} (${b.bankName})`;
-                        accSelect.appendChild(opt);
-                    });
+            const accSelect = document.getElementById('inputAccount');
+            accountsList.forEach(acc => {
+                if (acc !== "Cash in Hand") {
+                    const opt = document.createElement('option');
+                    opt.value = acc;
+                    opt.textContent = acc;
+                    accSelect.appendChild(opt);
                 }
-            }, { onlyOnce: true });
+            });
 
             // Add Button Event
             document.getElementById('addBtn').addEventListener('click', () => {
@@ -230,7 +259,85 @@
                     }
                 });
             });
+
+            // Attach Double Click Editing Events
+            attachInlineEditEvents();
         });
+
+        function attachInlineEditEvents() {
+            document.querySelectorAll('.editable-cell').forEach(cell => {
+                cell.addEventListener('dblclick', () => {
+                    if (cell.querySelector('input, select')) return;
+
+                    const id = cell.getAttribute('data-id');
+                    const field = cell.getAttribute('data-field');
+                    const currentVal = cell.getAttribute('data-val') || '';
+
+                    let inputEl;
+                    if (field === 'date') {
+                        inputEl = document.createElement('input');
+                        inputEl.type = 'date';
+                        inputEl.className = 'form-control form-control-sm edit-input';
+                        inputEl.value = currentVal;
+                    } else if (field === 'customer') {
+                        inputEl = document.createElement('select');
+                        inputEl.className = 'form-select form-select-sm edit-input';
+                        customersList.forEach(c => {
+                            const opt = document.createElement('option');
+                            opt.value = c;
+                            opt.textContent = c;
+                            if (c === currentVal) opt.selected = true;
+                            inputEl.appendChild(opt);
+                        });
+                    } else if (field === 'account') {
+                        inputEl = document.createElement('select');
+                        inputEl.className = 'form-select form-select-sm edit-input';
+                        accountsList.forEach(acc => {
+                            const opt = document.createElement('option');
+                            opt.value = acc;
+                            opt.textContent = acc;
+                            if (acc === currentVal) opt.selected = true;
+                            inputEl.appendChild(opt);
+                        });
+                    } else if (field === 'method') {
+                        inputEl = document.createElement('select');
+                        inputEl.className = 'form-select form-select-sm edit-input';
+                        ['Cash', 'Cheque', 'Card', 'Other'].forEach(m => {
+                            const opt = document.createElement('option');
+                            opt.value = m;
+                            opt.textContent = m;
+                            if (m === currentVal) opt.selected = true;
+                            inputEl.appendChild(opt);
+                        });
+                    } else {
+                        inputEl = document.createElement('input');
+                        inputEl.type = field === 'amount' ? 'number' : 'text';
+                        inputEl.className = 'form-control form-control-sm edit-input';
+                        inputEl.value = currentVal;
+                    }
+
+                    cell.innerHTML = '';
+                    cell.appendChild(inputEl);
+                    inputEl.focus();
+
+                    const saveChanges = () => {
+                        const newVal = inputEl.value.trim();
+                        if (newVal !== currentVal) {
+                            const updateObj = {};
+                            updateObj[field] = field === 'amount' ? (parseFloat(newVal) || 0) : newVal;
+                            update(ref(db, `receipts/${id}`), updateObj);
+                        } else {
+                            cell.textContent = field === 'amount' ? parseFloat(currentVal).toLocaleString() : currentVal;
+                        }
+                    };
+
+                    inputEl.addEventListener('blur', saveChanges);
+                    inputEl.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') inputEl.blur();
+                    });
+                });
+            });
+        }
     </script>
 </body>
 </html>
