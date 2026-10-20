@@ -168,14 +168,21 @@
                 });
             }
 
-            // Append Input Row at the BOTTOM
+            // Append Input Row at the BOTTOM with Dropdown + Manual Input Group
             const inputTr = document.createElement('tr');
             inputTr.className = "table-light";
             inputTr.innerHTML = `
                 <td class="text-center text-muted fw-bold">+</td>
                 <td><input type="date" class="form-control form-control-sm" id="inputDate" value="${new Date().toISOString().split('T')[0]}"></td>
                 <td><input type="text" class="form-control form-control-sm" id="inputDesc" placeholder="e.g. Office Rent / Salary"></td>
-                <td><input type="text" class="form-control form-control-sm" id="inputReceiver" placeholder="Paid To Name"></td>
+                <td>
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control" id="inputReceiver" placeholder="Type name">
+                        <select class="form-select" id="receiverSelect" style="max-width: 40px; padding: 0 4px;">
+                            <option value="" selected disabled></option>
+                        </select>
+                    </div>
+                </td>
                 <td><input type="number" class="form-control form-control-sm" id="inputAmount" placeholder="Amount"></td>
                 <td>
                     <select class="form-select form-select-sm" id="inputMethod">
@@ -197,20 +204,34 @@
             `;
             tbody.appendChild(inputTr);
 
+            // Populate Receiver Dropdown and Account Dropdown
+            const recSelect = document.getElementById('receiverSelect');
+            const recInput = document.getElementById('inputReceiver');
             const accSelect = document.getElementById('inputAccount');
+
             accountsList.forEach(acc => {
+                const opt1 = document.createElement('option');
+                opt1.value = acc;
+                opt1.textContent = acc;
+                recSelect.appendChild(opt1);
+
                 if (acc !== "Cash in Hand") {
-                    const opt = document.createElement('option');
-                    opt.value = acc;
-                    opt.textContent = acc;
-                    accSelect.appendChild(opt);
+                    const opt2 = document.createElement('option');
+                    opt2.value = acc;
+                    opt2.textContent = acc;
+                    accSelect.appendChild(opt2);
                 }
+            });
+
+            // When user selects from receiver dropdown, automatically fill the input box
+            recSelect.addEventListener('change', (e) => {
+                recInput.value = e.target.value;
             });
 
             // Add Payment Button Event
             document.getElementById('addBtn').addEventListener('click', () => {
                 const date = document.getElementById('inputDate').value;
-                const receiver = document.getElementById('inputReceiver').value.trim();
+                const receiver = recInput.value.trim();
                 const amount = parseFloat(document.getElementById('inputAmount').value) || 0;
                 const method = document.getElementById('inputMethod').value;
                 const account = document.getElementById('inputAccount').value;
