@@ -30,11 +30,11 @@
         }
         .sr-col { width: 5% !important; text-align: center; }
         .date-col { width: 10% !important; white-space: nowrap; text-align: center; }
-        .desc-col { width: 22%; min-width: 130px; white-space: normal !important; word-break: break-word; }
-        .sender-col { width: 15%; min-width: 110px; white-space: normal !important; word-break: break-word; }
-        .receiver-col { width: 15%; min-width: 110px; white-space: normal !important; word-break: break-word; }
-        .received-col { width: 12% !important; text-align: right; }
-        .send-col { width: 12% !important; text-align: right; }
+        .desc-col { width: 20%; min-width: 130px; white-space: normal !important; word-break: break-word; }
+        .sender-col { width: 18% !important; min-width: 110px; white-space: normal !important; word-break: break-word; }
+        .receiver-col { width: 18% !important; min-width: 110px; white-space: normal !important; word-break: break-word; }
+        .received-col { width: 10% !important; text-align: right; }
+        .send-col { width: 10% !important; text-align: right; }
         .total-col { width: 9% !important; text-align: right; }
 
         .footer {
@@ -171,9 +171,7 @@
                         if (amt > 0) {
                             const receiver = (item.receiver || '').toLowerCase();
                             
-                            // Agar bank se cash withdraw kiya gaya hai (Receiver Cash in Hand hai) -> Do entries banengi
                             if (receiver.includes('cash')) {
-                                // Entry 1: Bank se gaya (Amount Send)
                                 allTransactions.push({
                                     date: item.date || '',
                                     description: (item.description || 'Withdraw') + ' (Bank Out)',
@@ -183,7 +181,6 @@
                                     amountSend: amt,
                                     netEffect: -amt
                                 });
-                                // Entry 2: Cash mein aya (Amount Received)
                                 allTransactions.push({
                                     date: item.date || '',
                                     description: (item.description || 'Withdraw') + ' (Cash In)',
@@ -194,7 +191,6 @@
                                     netEffect: amt
                                 });
                             } else {
-                                // Normal Payment Out (Real Expense)
                                 allTransactions.push({
                                     date: item.date || '',
                                     description: item.description || 'Payment Out',
