@@ -28,7 +28,6 @@
             vertical-align: middle !important;
             padding: 6px 4px !important;
         }
-        /* Column widths */
         .sr-col { width: 5% !important; text-align: center; }
         .date-col { width: 10% !important; white-space: nowrap; text-align: center; }
         .desc-col { width: 22%; min-width: 130px; white-space: normal !important; word-break: break-word; }
@@ -142,7 +141,7 @@
 
             let allTransactions = [];
 
-            // 1. Read from Receipts (Amount Received from Customer into Account)
+            // 1. Read from Receipts (Amount Received)
             if (dbData.receipts) {
                 Object.keys(dbData.receipts).forEach(rKey => {
                     const item = dbData.receipts[rKey];
@@ -152,31 +151,60 @@
                             allTransactions.push({
                                 date: item.date || '',
                                 description: item.description || 'Receipt',
-                                sender: item.customer || item.sender || 'Customer',
-                                receiver: item.account || item.receiver || 'Company Account',
+                                sender: item.customer || 'Customer',
+                                receiver: item.account || 'Company Account',
                                 amountReceived: amt,
-                                amountSend: 0
+                                amountSend: 0,
+                                netEffect: amt
                             });
                         }
                     }
                 });
             }
 
-            // 2. Read from Payments (Amount Sent from Account to Receiver/Expense)
+            // 2. Read from Payments (Amount Sent / Cash Withdrawal)
             if (dbData.payments) {
                 Object.keys(dbData.payments).forEach(pKey => {
                     const item = dbData.payments[pKey];
                     if (item && typeof item === 'object') {
                         const amt = parseFloat(item.amount) || 0;
                         if (amt > 0) {
-                            allTransactions.push({
-                                date: item.date || '',
-                                description: item.description || 'Payment Out',
-                                sender: item.account || item.sender || 'Company Account',
-                                receiver: item.receiver || item.customer || 'Expense/Vendor',
-                                amountReceived: 0,
-                                amountSend: amt
-                            });
+                            const receiver = (item.receiver || '').toLowerCase();
+                            
+                            // Agar bank se cash withdraw kiya gaya hai (Receiver Cash in Hand hai) -> Do entries banengi
+                            if (receiver.includes('cash')) {
+                                // Entry 1: Bank se gaya (Amount Send)
+                                allTransactions.push({
+                                    date: item.date || '',
+                                    description: (item.description || 'Withdraw') + ' (Bank Out)',
+                                    sender: item.account || 'Bank Account',
+                                    receiver: item.receiver || 'Cash in Hand',
+                                    amountReceived: 0,
+                                    amountSend: amt,
+                                    netEffect: -amt
+                                });
+                                // Entry 2: Cash mein aya (Amount Received)
+                                allTransactions.push({
+                                    date: item.date || '',
+                                    description: (item.description || 'Withdraw') + ' (Cash In)',
+                                    sender: item.account || 'Bank Account',
+                                    receiver: item.receiver || 'Cash in Hand',
+                                    amountReceived: amt,
+                                    amountSend: 0,
+                                    netEffect: amt
+                                });
+                            } else {
+                                // Normal Payment Out (Real Expense)
+                                allTransactions.push({
+                                    date: item.date || '',
+                                    description: item.description || 'Payment Out',
+                                    sender: item.account || 'Company Account',
+                                    receiver: item.receiver || 'Expense/Vendor',
+                                    amountReceived: 0,
+                                    amountSend: amt,
+                                    netEffect: -amt
+                                });
+                            }
                         }
                     }
                 });
@@ -200,7 +228,8 @@
                                         sender: item.customer || 'Customer',
                                         receiver: item.method || 'Company Account',
                                         amountReceived: amountReceived,
-                                        amountSend: 0
+                                        amountSend: 0,
+                                        netEffect: amountReceived
                                     });
                                 }
                                 if (amountSent > 0) {
@@ -210,7 +239,8 @@
                                         sender: 'Company',
                                         receiver: item.customer || 'Customer',
                                         amountReceived: 0,
-                                        amountSend: amountSent
+                                        amountSend: amountSent,
+                                        netEffect: -amountSent
                                     });
                                 }
                             }
@@ -232,7 +262,7 @@
                 let runningTotal = 0;
 
                 allTransactions.forEach(t => {
-                    runningTotal += (t.amountReceived - t.amountSend);
+                    runningTotal += t.netEffect;
                     const displayDate = formatDateToDisplay(t.date);
 
                     const row = document.createElement('tr');
