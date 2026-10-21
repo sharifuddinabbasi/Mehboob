@@ -67,7 +67,6 @@
             </div>
             
             <div class="table-responsive p-1">
-                <!-- Reduced table min-width to 850px -->
                 <table class="table table-bordered table-striped align-middle mb-0" style="min-width: 850px;">
                     <thead class="table-secondary text-center">
                         <tr>
@@ -163,7 +162,7 @@
                 });
             }
 
-            // 2. Read from Payments (Amount Sent / Cash Withdrawal)
+            // 2. Read from Payments (Amount Sent / Transfers / Withdrawals)
             if (dbData.payments) {
                 Object.keys(dbData.payments).forEach(pKey => {
                     const item = dbData.payments[pKey];
@@ -171,27 +170,33 @@
                         const amt = parseFloat(item.amount) || 0;
                         if (amt > 0) {
                             const receiver = (item.receiver || '').toLowerCase();
+                            const account = (item.account || '').toLowerCase();
                             
-                            if (receiver.includes('cash')) {
+                            // Check if receiver is another internal account/bank or cash
+                            const isInternalTransfer = receiver.includes('bank') || receiver.includes('cash') || receiver.includes('account') || receiver.includes('meb') || receiver.includes('khan');
+
+                            if (isInternalTransfer) {
+                                // Double entry for internal transfer (Out & In) to keep net effect zero on total balance
                                 allTransactions.push({
                                     date: item.date || '',
-                                    description: (item.description || 'Withdraw') + ' (Bank Out)',
-                                    sender: item.account || 'Bank Account',
-                                    receiver: item.receiver || 'Cash in Hand',
+                                    description: (item.description || 'Transfer') + ' (Out)',
+                                    sender: item.account || 'Source Account',
+                                    receiver: item.receiver || 'Destination Account',
                                     amountReceived: 0,
                                     amountSend: amt,
                                     netEffect: -amt
                                 });
                                 allTransactions.push({
                                     date: item.date || '',
-                                    description: (item.description || 'Withdraw') + ' (Cash In)',
-                                    sender: item.account || 'Bank Account',
-                                    receiver: item.receiver || 'Cash in Hand',
+                                    description: (item.description || 'Transfer') + ' (In)',
+                                    sender: item.account || 'Source Account',
+                                    receiver: item.receiver || 'Destination Account',
                                     amountReceived: amt,
                                     amountSend: 0,
                                     netEffect: amt
                                 });
                             } else {
+                                // Standard external expense/payment out
                                 allTransactions.push({
                                     date: item.date || '',
                                     description: item.description || 'Payment Out',
