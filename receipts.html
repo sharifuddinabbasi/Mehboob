@@ -9,61 +9,109 @@
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .header-section { background: linear-gradient(135deg, #0f5132, #198754); color: white; padding: 20px; border-bottom: 5px solid #ffc107; }
-        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        table th, table td { font-size: 11px !important; vertical-align: middle !important; padding: 4px 2px !important; }
-        .form-control-sm, .form-select-sm { font-size: 11px !important; padding: 3px 4px !important; }
-        .editable-cell { cursor: pointer; user-select: none; }
-        .editable-cell:hover { background-color: #e9ecef !important; }
-        .edit-input { width: 100%; font-size: 11px; padding: 2px 4px; box-sizing: border-box; }
-        .footer { background-color: #212529; color: #adb5bd; padding: 20px 0; text-align: center; margin-top: 50px; }
+        body {
+            background-color: #f4f7f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .header-section {
+            background: linear-gradient(135deg, #0f5132, #198754);
+            color: white;
+            padding: 20px;
+            border-bottom: 5px solid #ffc107;
+        }
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        table th, table td {
+            font-size: 11px !important;
+            vertical-align: middle !important;
+            padding: 6px 4px !important;
+        }
+        .form-control-sm, .form-select-sm {
+            font-size: 11px !important;
+            padding: 2px 4px !important;
+        }
+        /* Adjusted Column Widths & Reduced Table Width Layout */
+        .sr-col { width: 4% !important; text-align: center; }
+        .date-col { width: 7% !important; max-width: 7% !important; min-width: 70px; white-space: nowrap; text-align: center; overflow: hidden; }
+        .date-col input { font-size: 7px !important; padding: 1px 0px !important; text-align: center; }
+        .desc-col { width: 21%; min-width: 110px; white-space: normal !important; word-break: break-word; }
+        .customer-col { width: 19%; min-width: 110px; white-space: normal !important; word-break: break-word; }
+        .amount-col { width: 9% !important; min-width: 80px; text-align: right; }
+        .method-col { width: 9% !important; min-width: 75px; text-align: center; }
+        .account-col { width: 18%; min-width: 120px; white-space: normal !important; word-break: break-word; }
+        .action-col { width: 7% !important; text-align: center; }
+
+        .footer {
+            background-color: #212529;
+            color: #adb5bd;
+            padding: 20px 0;
+            text-align: center;
+            margin-top: 50px;
+        }
     </style>
 </head>
 <body>
 
+    <!-- Header Section -->
     <div class="header-section text-center">
         <div class="container d-flex justify-content-between align-items-center flex-wrap">
-            <h2 class="fw-bold mb-0"><i class="fa-solid fa-file-invoice-dollar text-warning"></i> Receipts Account</h2>
-            <a href="index.html" class="btn btn-secondary rounded-pill px-4 btn-sm"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
+            <h2 class="fw-bold mb-0"><i class="fa-solid fa-receipt text-warning"></i> Receipts Account</h2>
+            <a href="index.html" class="btn btn-secondary rounded-pill px-4 btn-sm">
+                <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+            </a>
         </div>
     </div>
 
-    <div class="container-fluid my-4 px-2" style="max-width: 1300px;">
+    <!-- Content Section -->
+    <div class="container-fluid my-4 px-3" style="max-width: 950px;">
+        
         <div class="card shadow-sm border-0 bg-white rounded-4 overflow-hidden mb-4">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3 flex-wrap gap-2">
                 <h5 class="mb-0"><i class="fa-solid fa-book-open text-warning"></i> Receipts List & Entry</h5>
-                <small class="text-warning"><i class="fa-solid fa-hand-pointer"></i> Double-click any cell to edit & auto-save</small>
+                <span class="badge bg-warning text-dark"><i class="fa-solid fa-info-circle"></i> Double-click any cell to edit & auto-save</span>
             </div>
             
             <div class="table-responsive p-1">
-                <table class="table table-bordered table-striped align-middle mb-0" style="min-width: 1050px;">
+                <table class="table table-bordered table-striped align-middle mb-0" style="min-width: 850px;">
                     <thead class="table-secondary text-center">
                         <tr>
-                            <th style="width: 5%;">Sr.No.</th>
-                            <th style="width: 11%;">Date</th>
-                            <th style="width: 25%;">Description</th>
-                            <th style="width: 18%;">Customer</th>
-                            <th style="width: 10%;">Amount</th>
-                            <th style="width: 10%;">Method</th>
-                            <th style="width: 16%;">Account</th>
-                            <th style="width: 5%;">Action</th>
+                            <th class="sr-col">Sr.No.</th>
+                            <th class="date-col">Date</th>
+                            <th class="desc-col">Description</th>
+                            <th class="customer-col">Customer</th>
+                            <th class="amount-col">Amount</th>
+                            <th class="method-col">Method</th>
+                            <th class="account-col">Account</th>
+                            <th class="action-col">Action</th>
                         </tr>
                     </thead>
-                    <tbody id="receiptTableBody"></tbody>
+                    <tbody id="receiptsTableBody">
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-3">Loading receipts...</td>
+                        </tr>
+                    </tbody>
                 </table>
             </div>
         </div>
+
     </div>
 
+    <!-- Footer -->
     <footer class="footer">
-        <div class="container"><p class="mb-0">&copy; 2026 Khan Petroleum Services Limited. All Rights Reserved. By Mehboob Ali.</p></div>
+        <div class="container">
+            <p class="mb-0">&copy; 2026 Khan Petroleum Services Limited. All Rights Reserved. By Mehboob Ali.</p>
+        </div>
     </footer>
 
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Firebase SDK & Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getDatabase, ref, onValue, push, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+        import { getDatabase, ref, onValue, update, push, set, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyD5BLPlTjaDBy6hmPeuedHtCnmcBQozLC4",
@@ -75,107 +123,213 @@
             measurementId: "G-GVB8XSJNJX"
         };
 
-        const db = getDatabase(initializeApp(firebaseConfig));
-        let customersList = [], accountsList = [];
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-        onValue(ref(db, 'customers'), (snap) => {
+        const receiptsTableBody = document.getElementById('receiptsTableBody');
+
+        let customersList = [];
+        let bankAccountsList = [];
+
+        function formatDateToDisplay(dateStr) {
+            if (!dateStr) return '-';
+            const parts = dateStr.split('-');
+            return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : dateStr;
+        }
+
+        // Fetch Customers and Bank Accounts for dropdowns
+        onValue(ref(db, 'customers'), (snapshot) => {
             customersList = [];
-            if (snap.val()) Object.keys(snap.val()).forEach(k => customersList.push(`[${snap.val()[k].code || ''}] ${snap.val()[k].name}`));
+            const data = snapshot.val();
+            if (data) {
+                Object.keys(data).forEach(k => {
+                    const c = data[k];
+                    if (c && c.name) customersList.push(c.name);
+                });
+            }
         });
 
-        onValue(ref(db, 'bank_accounts'), (snap) => {
-            accountsList = [];
-            if (snap.val()) Object.keys(snap.val()).forEach(k => accountsList.push(`${snap.val()[k].title} (${snap.val()[k].bankName})`));
+        onValue(ref(db, 'bank_accounts'), (snapshot) => {
+            bankAccountsList = [];
+            const data = snapshot.val();
+            if (data) {
+                Object.keys(data).forEach((k, index) => {
+                    const b = data[k];
+                    if (b) {
+                        const fullTitle = index === 0 ? (b.title || 'Cash in Hand') : `${b.title} (${b.bankName})`;
+                        bankAccountsList.push(fullTitle);
+                    }
+                });
+            }
         });
 
+        // Load Receipts Data
         onValue(ref(db, 'receipts'), (snapshot) => {
             const data = snapshot.val();
-            const tbody = document.getElementById('receiptTableBody');
-            tbody.innerHTML = '';
+            receiptsTableBody.innerHTML = '';
 
+            let receiptsArray = [];
             if (data) {
-                let index = 1;
-                Object.keys(data).forEach(k => {
-                    const item = data[k];
-                    const amt = parseFloat(item.amount) || 0;
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td class="text-center fw-bold">${index++}</td>
-                        <td class="text-center editable-cell" data-id="${k}" data-field="date" data-val="${item.date || ''}">${item.date || '-'}</td>
-                        <td class="editable-cell" data-id="${k}" data-field="description" data-val="${item.description || ''}">${item.description || '-'}</td>
-                        <td class="editable-cell" data-id="${k}" data-field="customer" data-val="${item.customer || ''}">${item.customer || '-'}</td>
-                        <td class="text-end text-success fw-semibold editable-cell" data-id="${k}" data-field="amount" data-val="${amt}">${amt ? amt.toLocaleString() : '0'}</td>
-                        <td class="text-center editable-cell" data-id="${k}" data-field="method" data-val="${item.method || ''}">${item.method || '-'}</td>
-                        <td class="editable-cell" data-id="${k}" data-field="account" data-val="${item.account || ''}">${item.account || '-'}</td>
-                        <td class="text-center"><button class="btn btn-danger btn-sm py-0 px-2 delete-btn" data-id="${k}"><i class="fa-solid fa-trash"></i></button></td>
-                    `;
-                    tbody.appendChild(tr);
+                Object.keys(data).forEach(key => {
+                    receiptsArray.push({ id: key, ...data[key] });
                 });
             }
 
-            const inputTr = document.createElement('tr');
-            inputTr.className = "table-light";
-            inputTr.innerHTML = `
-                <td class="text-center text-muted fw-bold">+</td>
-                <td><input type="date" class="form-control form-control-sm" id="inputDate" value="${new Date().toISOString().split('T')[0]}"></td>
-                <td><input type="text" class="form-control form-control-sm" id="inputDesc" placeholder="Description"></td>
-                <td><select class="form-select form-select-sm" id="inputCustomer"><option value="" selected disabled>-- Customer --</option></select></td>
-                <td><input type="number" class="form-control form-control-sm" id="inputAmount" placeholder="Amount"></td>
-                <td><select class="form-select form-select-sm" id="inputMethod"><option value="Cash">Cash</option><option value="Cheque">Cheque</option><option value="Card">Card</option><option value="Other">Other</option></select></td>
-                <td><select class="form-select form-select-sm" id="inputAccount"><option value="" selected disabled>-- Account --</option></select></td>
-                <td class="text-center"><button class="btn btn-success btn-sm py-1 px-3 fw-bold" id="addBtn">Add</button></td>
+            // Render existing rows
+            receiptsArray.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold text-center sr-col">${index + 1}</td>
+                    <td class="date-col" data-field="date" data-id="${item.id}">${formatDateToDisplay(item.date || '')}</td>
+                    <td class="desc-col" data-field="description" data-id="${item.id}">${item.description || ''}</td>
+                    <td class="customer-col" data-field="customer" data-id="${item.id}">${item.customer || ''}</td>
+                    <td class="fw-semibold text-success amount-col" data-field="amount" data-id="${item.id}">${item.amount || ''}</td>
+                    <td class="method-col" data-field="method" data-id="${item.id}">${item.method || ''}</td>
+                    <td class="account-col" data-field="account" data-id="${item.id}">${item.account || ''}</td>
+                    <td class="action-col">
+                        <button class="btn btn-sm btn-outline-danger delete-btn py-0 px-1" data-id="${item.id}" title="Delete Record">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                receiptsTableBody.appendChild(tr);
+            });
+
+            // Add New Entry Row at the bottom
+            const todayStr = new Date().toISOString().split('T')[0];
+            const newTr = document.createElement('tr');
+            newTr.className = "table-light";
+            newTr.innerHTML = `
+                <td class="fw-bold text-center sr-col"><i class="fa-solid fa-plus text-success"></i></td>
+                <td class="date-col"><input type="date" class="form-control form-control-sm text-center" id="newDate" value="${todayStr}"></td>
+                <td class="desc-col"><input type="text" class="form-control form-control-sm" id="newDesc" placeholder="Description"></td>
+                <td class="customer-col">
+                    <select class="form-select form-select-sm" id="newCustomer">
+                        <option value="" selected disabled>-- Select --</option>
+                        ${customersList.map(c => `<option value="${c}">${c}</option>`).join('')}
+                    </select>
+                </td>
+                <td class="amount-col"><input type="number" class="form-control form-control-sm text-end" id="newAmount" placeholder="Amount"></td>
+                <td class="method-col">
+                    <select class="form-select form-select-sm" id="newMethod">
+                        <option value="Cash">Cash</option>
+                        <option value="Bank">Bank</option>
+                        <option value="Cheque">Cheque</option>
+                    </select>
+                </td>
+                <td class="account-col">
+                    <select class="form-select form-select-sm" id="newAccount">
+                        <option value="" selected disabled>-- Select --</option>
+                        ${bankAccountsList.map(acc => `<option value="${acc}">${acc}</option>`).join('')}
+                    </select>
+                </td>
+                <td class="action-col text-center">
+                    <button class="btn btn-sm btn-success py-0 px-1" id="saveNewBtn" title="Save New Entry">
+                        <i class="fa-solid fa-check"></i>
+                    </button>
+                </td>
             `;
-            tbody.appendChild(inputTr);
+            receiptsTableBody.appendChild(newTr);
 
-            const custSelect = document.getElementById('inputCustomer');
-            customersList.forEach(c => custSelect.appendChild(new Option(c, c)));
-            const accSelect = document.getElementById('inputAccount');
-            accountsList.forEach(acc => accSelect.appendChild(new Option(acc, acc)));
+            // Event listener for saving new entry via check button
+            document.getElementById('saveNewBtn').addEventListener('click', () => {
+                const date = document.getElementById('newDate').value;
+                const description = document.getElementById('newDesc').value;
+                const customer = document.getElementById('newCustomer').value;
+                const amount = document.getElementById('newAmount').value;
+                const method = document.getElementById('newMethod').value;
+                const account = document.getElementById('newAccount').value;
 
-            document.getElementById('addBtn').addEventListener('click', () => {
-                const date = document.getElementById('inputDate').value;
-                const customer = document.getElementById('inputCustomer').value;
-                const amount = parseFloat(document.getElementById('inputAmount').value) || 0;
-                const method = document.getElementById('inputMethod').value;
-                const account = document.getElementById('inputAccount').value;
-                const description = document.getElementById('inputDesc').value || 'Receipt';
-
-                if (!customer || amount <= 0 || !account) { alert("Baraye karam Customer, Amount aur Account zaroor select/enter karein!"); return; }
-                push(ref(db, 'receipts'), { date, customer, amount, method, account, description });
+                if (date && customer && amount && account) {
+                    const newRef = push(ref(db, 'receipts'));
+                    set(newRef, {
+                        date,
+                        description,
+                        customer,
+                        amount: parseFloat(amount) || 0,
+                        method,
+                        account
+                    });
+                } else {
+                    alert('Please fill out all required fields (Date, Customer, Amount, Account)!');
+                }
             });
 
-            document.querySelectorAll('.delete-btn').forEach(btn => {
+            // Delete record event listeners
+            receiptsTableBody.querySelectorAll('.delete-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    if (confirm("Kya aap is entry ko delete karna chahte hain?")) remove(ref(db, `receipts/${e.currentTarget.getAttribute('data-id')}`));
+                    const id = e.currentTarget.getAttribute('data-id');
+                    if (confirm('Are you sure you want to delete this receipt record?')) {
+                        remove(ref(db, `receipts/${id}`));
+                    }
                 });
             });
 
-            document.querySelectorAll('.editable-cell').forEach(cell => {
-                cell.addEventListener('dblclick', () => {
-                    if (cell.querySelector('input, select')) return;
-                    const id = cell.getAttribute('data-id'), field = cell.getAttribute('data-field'), currentVal = cell.getAttribute('data-val') || '';
-                    let inputEl = document.createElement('input');
-                    inputEl.className = 'form-control form-control-sm edit-input';
-                    if (field === 'date') inputEl.type = 'date', inputEl.value = currentVal;
-                    else if (field === 'amount') inputEl.type = 'number', inputEl.value = currentVal;
-                    else if (field === 'customer' || field === 'account' || field === 'method') {
-                        inputEl = document.createElement('select');
-                        inputEl.className = 'form-select form-select-sm edit-input';
-                        let list = field === 'customer' ? customersList : (field === 'account' ? accountsList : ['Cash', 'Cheque', 'Card', 'Other']);
-                        list.forEach(item => { const opt = new Option(item, item); if (item === currentVal) opt.selected = true; inputEl.appendChild(opt); });
-                    } else inputEl.value = currentVal;
-
-                    cell.innerHTML = ''; cell.appendChild(inputEl); inputEl.focus();
-                    const save = () => {
-                        const newVal = inputEl.value.trim();
-                        if (newVal !== currentVal) update(ref(db, `receipts/${id}`), { [field]: field === 'amount' ? (parseFloat(newVal) || 0) : newVal });
-                        else cell.textContent = field === 'amount' ? parseFloat(currentVal).toLocaleString() : currentVal;
-                    };
-                    inputEl.addEventListener('blur', save);
-                    inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') inputEl.blur(); });
-                });
-            });
+            // Enable Double-Click Inline Editing
+            enableInlineEditing();
         });
+
+        function enableInlineEditing() {
+            const editableCells = receiptsTableBody.querySelectorAll('td[data-field]');
+            editableCells.forEach(cell => {
+                cell.addEventListener('dblclick', function() {
+                    if (cell.querySelector('input, select')) return;
+                    const currentText = cell.textContent.trim();
+                    const field = cell.getAttribute('data-field');
+                    const id = cell.getAttribute('data-id');
+
+                    if (field === 'method') {
+                        cell.innerHTML = `
+                            <select class="form-select form-select-sm inline-edit">
+                                <option value="Cash" ${currentText==='Cash'?'selected':''}>Cash</option>
+                                <option value="Bank" ${currentText==='Bank'?'selected':''}>Bank</option>
+                                <option value="Cheque" ${currentText==='Cheque'?'selected':''}>Cheque</option>
+                            </select>`;
+                    } else if (field === 'customer') {
+                        cell.innerHTML = `
+                            <select class="form-select form-select-sm inline-edit">
+                                ${customersList.map(c => `<option value="${c}" ${c===currentText?'selected':''}>${c}</option>`).join('')}
+                            </select>`;
+                    } else if (field === 'account') {
+                        cell.innerHTML = `
+                            <select class="form-select form-select-sm inline-edit">
+                                ${bankAccountsList.map(acc => `<option value="${acc}" ${acc===currentText?'selected':''}>${acc}</option>`).join('')}
+                            </select>`;
+                    } else if (field === 'date') {
+                        let dbDate = currentText;
+                        const parts = currentText.split('-');
+                        if (parts.length === 3) {
+                            dbDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                        }
+                        cell.innerHTML = `<input type="date" class="form-control form-control-sm inline-edit text-center" value="${dbDate}">`;
+                    } else {
+                        const inputType = field === 'amount' ? 'number' : 'text';
+                        cell.innerHTML = `<input type="${inputType}" class="form-control form-control-sm inline-edit" value="${currentText}">`;
+                    }
+
+                    const input = cell.querySelector('.inline-edit');
+                    input.focus();
+
+                    const saveChanges = () => {
+                        const newValue = input.value;
+                        if (newValue !== currentText) {
+                            const updates = {};
+                            updates[field] = field === 'amount' ? (parseFloat(newValue) || 0) : newValue;
+                            update(ref(db, `receipts/${id}`), updates);
+                        } else {
+                            cell.textContent = currentText;
+                        }
+                    };
+
+                    input.addEventListener('blur', saveChanges);
+                    input.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            input.blur();
+                        }
+                    });
+                });
+            });
+        }
     </script>
 </body>
 </html>
