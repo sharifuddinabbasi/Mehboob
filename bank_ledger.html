@@ -240,12 +240,13 @@
                     });
                 }
             } else {
+                // Receipts into this Bank Account
                 if (globalDbData.receipts) {
                     Object.keys(globalDbData.receipts).forEach(rKey => {
                         const item = globalDbData.receipts[rKey];
                         if (item && typeof item === 'object') {
                             const accStr = (item.account || item.receiver || '').trim().toLowerCase();
-                            if (accStr.includes(searchName) || searchName.includes(accStr)) {
+                            if (accStr && (accStr.includes(searchName) || searchName.includes(accStr))) {
                                 const amt = parseFloat(item.amount) || 0;
                                 if (amt > 0) {
                                     transactions.push({
@@ -261,20 +262,35 @@
                     });
                 }
 
+                // Payments from OR Transfers into this Bank Account
                 if (globalDbData.payments) {
                     Object.keys(globalDbData.payments).forEach(pKey => {
                         const item = globalDbData.payments[pKey];
                         if (item && typeof item === 'object') {
-                            const accStr = (item.account || item.sender || '').trim().toLowerCase();
-                            if (accStr.includes(searchName) || searchName.includes(accStr)) {
-                                const amt = parseFloat(item.amount) || 0;
-                                if (amt > 0) {
+                            const amt = parseFloat(item.amount) || 0;
+                            if (amt > 0) {
+                                const fromAccStr = (item.account || item.sender || '').trim().toLowerCase();
+                                const toRecStr = (item.receiver || '').trim().toLowerCase();
+
+                                // 1. If money was sent OUT from this bank account
+                                if (fromAccStr && (fromAccStr.includes(searchName) || searchName.includes(fromAccStr))) {
                                     transactions.push({
                                         date: item.date || '',
                                         description: item.description || 'Payment Out',
                                         party: item.receiver || '-',
                                         deposit: 0,
                                         withdraw: amt
+                                    });
+                                }
+
+                                // 2. If money was transferred IN to this bank account (as receiver)
+                                if (toRecStr && (toRecStr.includes(searchName) || searchName.includes(toRecStr))) {
+                                    transactions.push({
+                                        date: item.date || '',
+                                        description: item.description || 'Bank Transfer In',
+                                        party: item.account || item.sender || '-',
+                                        deposit: amt,
+                                        withdraw: 0
                                     });
                                 }
                             }
