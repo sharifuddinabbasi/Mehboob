@@ -12,11 +12,23 @@
         body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .header-section { background: linear-gradient(135deg, #0f5132, #198754); color: white; padding: 20px; border-bottom: 5px solid #ffc107; }
         .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        table th, table td { font-size: 11px !important; vertical-align: middle !important; padding: 4px 2px !important; }
-        .form-control-sm, .form-select-sm { font-size: 11px !important; padding: 3px 4px !important; }
+        table th, table td { font-size: 11px !important; vertical-align: middle !important; padding: 6px 4px !important; }
+        .form-control-sm, .form-select-sm { font-size: 11px !important; padding: 2px 4px !important; }
         .editable-cell { cursor: pointer; user-select: none; }
         .editable-cell:hover { background-color: #e9ecef !important; }
         .edit-input { width: 100%; font-size: 11px; padding: 2px 4px; box-sizing: border-box; }
+        
+        /* Updated Column Widths */
+        .sr-col { width: 4% !important; text-align: center; }
+        .date-col { width: 7% !important; max-width: 7% !important; min-width: 70px; white-space: nowrap; text-align: center; overflow: hidden; }
+        .date-col input { font-size: 7px !important; padding: 1px 0px !important; text-align: center; }
+        .desc-col { width: 20%; min-width: 110px; white-space: normal !important; word-break: break-word; }
+        .receiver-col { width: 19%; min-width: 110px; white-space: normal !important; word-break: break-word; }
+        .amount-col { width: 9% !important; min-width: 80px; text-align: right; }
+        .method-col { width: 8% !important; min-width: 70px; text-align: center; }
+        .account-col { width: 18%; min-width: 115px; white-space: normal !important; word-break: break-word; }
+        .action-col { width: 7% !important; text-align: center; }
+
         .footer { background-color: #212529; color: #adb5bd; padding: 20px 0; text-align: center; margin-top: 50px; }
     </style>
 </head>
@@ -29,25 +41,26 @@
         </div>
     </div>
 
-    <div class="container-fluid my-4 px-2" style="max-width: 1300px;">
+    <!-- Container Width (950px) -->
+    <div class="container-fluid my-4 px-3" style="max-width: 950px;">
         <div class="card shadow-sm border-0 bg-white rounded-4 overflow-hidden mb-4">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3 flex-wrap gap-2">
                 <h5 class="mb-0"><i class="fa-solid fa-book-open text-warning"></i> Payments List & Entry</h5>
-                <small class="text-warning"><i class="fa-solid fa-hand-pointer"></i> Double-click any cell to edit & auto-save</small>
+                <span class="badge bg-warning text-dark"><i class="fa-solid fa-hand-pointer"></i> Double-click any cell to edit & auto-save</span>
             </div>
             
             <div class="table-responsive p-1">
-                <table class="table table-bordered table-striped align-middle mb-0" style="min-width: 1050px;">
+                <table class="table table-bordered table-striped align-middle mb-0" style="min-width: 850px;">
                     <thead class="table-secondary text-center">
                         <tr>
-                            <th style="width: 5%;">Sr.No.</th>
-                            <th style="width: 11%;">Date</th>
-                            <th style="width: 22%;">Description</th>
-                            <th style="width: 18%;">Paid To / Receiver</th>
-                            <th style="width: 12%;">Amount Sent</th>
-                            <th style="width: 10%;">Method</th>
-                            <th style="width: 17%;">From Account</th>
-                            <th style="width: 5%;">Action</th>
+                            <th class="sr-col">Sr.No.</th>
+                            <th class="date-col">Date</th>
+                            <th class="desc-col">Description</th>
+                            <th class="receiver-col">Paid To / Receiver</th>
+                            <th class="amount-col">Amount Sent</th>
+                            <th class="method-col">Method</th>
+                            <th class="account-col">From Account</th>
+                            <th class="action-col">Action</th>
                         </tr>
                     </thead>
                     <tbody id="paymentTableBody"></tbody>
@@ -96,14 +109,14 @@
                     const receiverName = item.receiver || item.customer || '-';
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td class="text-center fw-bold">${index++}</td>
-                        <td class="text-center editable-cell" data-id="${k}" data-field="date" data-val="${item.date || ''}">${item.date || '-'}</td>
-                        <td class="editable-cell" data-id="${k}" data-field="description" data-val="${item.description || ''}">${item.description || '-'}</td>
-                        <td class="editable-cell" data-id="${k}" data-field="receiver" data-val="${receiverName}">${receiverName}</td>
-                        <td class="text-end text-danger fw-semibold editable-cell" data-id="${k}" data-field="amount" data-val="${amt}">${amt ? amt.toLocaleString() : '0'}</td>
-                        <td class="text-center editable-cell" data-id="${k}" data-field="method" data-val="${item.method || ''}">${item.method || '-'}</td>
-                        <td class="editable-cell" data-id="${k}" data-field="account" data-val="${item.account || ''}">${item.account || '-'}</td>
-                        <td class="text-center"><button class="btn btn-danger btn-sm py-0 px-2 delete-btn" data-id="${k}"><i class="fa-solid fa-trash"></i></button></td>
+                        <td class="text-center fw-bold sr-col">${index++}</td>
+                        <td class="text-center editable-cell date-col" data-id="${k}" data-field="date" data-val="${item.date || ''}">${item.date || '-'}</td>
+                        <td class="editable-cell desc-col" data-id="${k}" data-field="description" data-val="${item.description || ''}">${item.description || '-'}</td>
+                        <td class="editable-cell receiver-col" data-id="${k}" data-field="receiver" data-val="${receiverName}">${receiverName}</td>
+                        <td class="text-end text-danger fw-semibold editable-cell amount-col" data-id="${k}" data-field="amount" data-val="${amt}">${amt ? amt.toLocaleString() : '0'}</td>
+                        <td class="text-center editable-cell method-col" data-id="${k}" data-field="method" data-val="${item.method || ''}">${item.method || '-'}</td>
+                        <td class="editable-cell account-col" data-id="${k}" data-field="account" data-val="${item.account || ''}">${item.account || '-'}</td>
+                        <td class="text-center action-col"><button class="btn btn-danger btn-sm py-0 px-2 delete-btn" data-id="${k}"><i class="fa-solid fa-trash"></i></button></td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -112,19 +125,19 @@
             const inputTr = document.createElement('tr');
             inputTr.className = "table-light";
             inputTr.innerHTML = `
-                <td class="text-center text-muted fw-bold">+</td>
-                <td><input type="date" class="form-control form-control-sm" id="inputDate" value="${new Date().toISOString().split('T')[0]}"></td>
-                <td><input type="text" class="form-control form-control-sm" id="inputDesc" placeholder="Expense / Salary / Rent"></td>
-                <td>
+                <td class="text-center text-muted fw-bold sr-col">+</td>
+                <td class="date-col"><input type="date" class="form-control form-control-sm" id="inputDate" value="${new Date().toISOString().split('T')[0]}"></td>
+                <td class="desc-col"><input type="text" class="form-control form-control-sm" id="inputDesc" placeholder="Expense / Salary / Rent"></td>
+                <td class="receiver-col">
                     <div class="input-group input-group-sm">
                         <input type="text" class="form-control" id="inputReceiver" placeholder="Type or select">
                         <select class="form-select" id="receiverSelect" style="max-width: 40px; padding: 0 4px;"><option value="" selected disabled></option></select>
                     </div>
                 </td>
-                <td><input type="number" class="form-control form-control-sm" id="inputAmount" placeholder="Amount"></td>
-                <td><select class="form-select form-select-sm" id="inputMethod"><option value="Cash">Cash</option><option value="Cheque">Cheque</option><option value="Card">Card</option><option value="Other">Other</option></select></td>
-                <td><select class="form-select form-select-sm" id="inputAccount"><option value="" selected disabled>-- From Account --</option></select></td>
-                <td class="text-center"><button class="btn btn-danger btn-sm py-1 px-3 fw-bold" id="addBtn">Add</button></td>
+                <td class="amount-col"><input type="number" class="form-control form-control-sm text-end" id="inputAmount" placeholder="Amount"></td>
+                <td class="method-col"><select class="form-select form-select-sm" id="inputMethod"><option value="Cash">Cash</option><option value="Cheque">Cheque</option><option value="Card">Card</option><option value="Other">Other</option></select></td>
+                <td class="account-col"><select class="form-select form-select-sm" id="inputAccount"><option value="" selected disabled>-- From Account --</option></select></td>
+                <td class="text-center action-col"><button class="btn btn-danger btn-sm py-1 px-2 fw-bold" id="addBtn">Add</button></td>
             `;
             tbody.appendChild(inputTr);
 
