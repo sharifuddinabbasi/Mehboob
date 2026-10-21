@@ -31,6 +31,15 @@
             vertical-align: middle !important;
             padding: 6px 4px !important;
         }
+        /* Column Widths */
+        .sr-col { width: 5% !important; text-align: center; }
+        .date-col { width: 12% !important; white-space: nowrap; text-align: center; }
+        .desc-col { width: 28%; min-width: 130px; white-space: normal !important; word-break: break-word; }
+        .party-col { width: 25%; min-width: 130px; white-space: normal !important; word-break: break-word; }
+        .deposit-col { width: 10% !important; text-align: right; }
+        .withdraw-col { width: 10% !important; text-align: right; }
+        .balance-col { width: 10% !important; text-align: right; }
+
         .footer {
             background-color: #212529;
             color: #adb5bd;
@@ -73,16 +82,16 @@
             </div>
             
             <div class="table-responsive p-1">
-                <table class="table table-bordered table-striped align-middle mb-0" style="min-width: 850px;">
+                <table class="table table-bordered table-striped align-middle mb-0" style="min-width: 900px;">
                     <thead class="table-secondary text-center">
                         <tr>
-                            <th>Sr.No.</th>
-                            <th>Date</th>
-                            <th>Description</th>
-                            <th>Party / Customer</th>
-                            <th>Deposit (In)</th>
-                            <th>Withdraw (Out)</th>
-                            <th>Balance</th>
+                            <th class="sr-col">Sr.No.</th>
+                            <th class="date-col">Date</th>
+                            <th class="desc-col">Description</th>
+                            <th class="party-col">Party / Customer</th>
+                            <th class="deposit-col">Deposit (In)</th>
+                            <th class="withdraw-col">Withdraw (Out)</th>
+                            <th class="balance-col">Balance</th>
                         </tr>
                     </thead>
                     <tbody id="bankTableBody">
@@ -145,7 +154,6 @@
             bankDropdown.innerHTML = '<option value="" selected disabled>-- Select Bank Account --</option>';
             if (data) {
                 const keys = Object.keys(data);
-                // Start loop from index 1 to hide the first account (Cash in Hand)
                 for (let i = 1; i < keys.length; i++) {
                     const key = keys[i];
                     const b = data[key];
@@ -176,7 +184,7 @@
             }
         });
 
-        // Render Bank Ledger Transactions (Linked with Cash in Hand if first account is selected or searched)
+        // Render Bank Ledger Transactions
         function renderBankLedger() {
             bankTableBody.innerHTML = '';
             if (!globalDbData) return;
@@ -185,7 +193,6 @@
             const searchName = selectedBankName.trim().toLowerCase();
             const isCashAccountSelected = searchName.includes('cash') || searchName === '';
 
-            // If first account / Cash in Hand is selected, load cash ledger transactions
             if (isCashAccountSelected) {
                 const isCashAcc = (acc) => (acc || '').toLowerCase().includes('cash');
 
@@ -233,7 +240,6 @@
                     });
                 }
             } else {
-                // Regular Bank Account Transactions
                 if (globalDbData.receipts) {
                     Object.keys(globalDbData.receipts).forEach(rKey => {
                         const item = globalDbData.receipts[rKey];
@@ -277,7 +283,6 @@
                 }
             }
 
-            // Sort chronologically by Date
             transactions.sort((a, b) => {
                 if (!a.date) return 1;
                 if (!b.date) return -1;
@@ -292,13 +297,13 @@
                     runningBalance += (t.deposit - t.withdraw);
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td class="text-center fw-bold">${index++}</td>
-                        <td class="text-center">${formatDateToDisplay(t.date)}</td>
-                        <td>${t.description}</td>
-                        <td>${t.party}</td>
-                        <td class="text-end text-success fw-semibold">${t.deposit ? t.deposit.toLocaleString() : '-'}</td>
-                        <td class="text-end text-danger fw-semibold">${t.withdraw ? t.withdraw.toLocaleString() : '-'}</td>
-                        <td class="text-end fw-bold">${runningBalance.toLocaleString()}</td>
+                        <td class="text-center fw-bold sr-col">${index++}</td>
+                        <td class="text-center date-col">${formatDateToDisplay(t.date)}</td>
+                        <td class="desc-col">${t.description}</td>
+                        <td class="party-col">${t.party}</td>
+                        <td class="text-end text-success fw-semibold deposit-col">${t.deposit ? t.deposit.toLocaleString() : '-'}</td>
+                        <td class="text-end text-danger fw-semibold withdraw-col">${t.withdraw ? t.withdraw.toLocaleString() : '-'}</td>
+                        <td class="text-end fw-bold balance-col">${runningBalance.toLocaleString()}</td>
                     `;
                     bankTableBody.appendChild(tr);
                 });

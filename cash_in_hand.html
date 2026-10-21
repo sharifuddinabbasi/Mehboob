@@ -4,25 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cash in Hand Ledger - Khan Petroleum Services Limited</title>
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .header-section { background: linear-gradient(135deg, #0f5132, #198754); color: white; padding: 20px; border-bottom: 5px solid #ffc107; }
-        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        table th, table td { font-size: 12px !important; vertical-align: middle !important; padding: 6px 4px !important; }
-        .footer { background-color: #212529; color: #adb5bd; padding: 20px 0; text-align: center; margin-top: 50px; }
+        body {
+            background-color: #f4f7f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .header-section {
+            background: linear-gradient(135deg, #0f5132, #198754);
+            color: white;
+            padding: 20px;
+            border-bottom: 5px solid #ffc107;
+        }
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        table th, table td {
+            font-size: 12px !important;
+            vertical-align: middle !important;
+            padding: 6px 4px !important;
+        }
+        /* Column Widths */
+        .sr-col { width: 5% !important; text-align: center; }
+        .date-col { width: 12% !important; white-space: nowrap; text-align: center; }
+        .desc-col { width: 28%; min-width: 130px; white-space: normal !important; word-break: break-word; }
+        .party-col { width: 25%; min-width: 130px; white-space: normal !important; word-break: break-word; }
+        .in-col { width: 10% !important; text-align: right; }
+        .out-col { width: 10% !important; text-align: right; }
+        .balance-col { width: 10% !important; text-align: right; }
+
+        .footer {
+            background-color: #212529;
+            color: #adb5bd;
+            padding: 20px 0;
+            text-align: center;
+            margin-top: 50px;
+        }
     </style>
 </head>
 <body>
 
+    <!-- Header Section -->
     <div class="header-section text-center">
         <div class="container d-flex justify-content-between align-items-center flex-wrap">
             <h2 class="fw-bold mb-0"><i class="fa-solid fa-wallet text-warning"></i> Cash in Hand Ledger</h2>
-            <a href="index.html" class="btn btn-secondary rounded-pill px-4 btn-sm"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
+            <a href="index.html" class="btn btn-secondary rounded-pill px-4 btn-sm">
+                <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+            </a>
         </div>
     </div>
 
+    <!-- Content Section -->
     <div class="container-fluid my-4 px-3" style="max-width: 1100px;">
         <div class="card shadow-sm border-0 bg-white rounded-4 overflow-hidden mb-4">
             <div class="card-header bg-dark text-white py-3">
@@ -30,25 +66,39 @@
             </div>
             
             <div class="table-responsive p-1">
-                <table class="table table-bordered table-striped align-middle mb-0" style="min-width: 850px;">
+                <table class="table table-bordered table-striped align-middle mb-0" style="min-width: 900px;">
                     <thead class="table-secondary text-center">
                         <tr>
-                            <th>Sr.No.</th><th>Date</th><th>Description</th><th>Party / Customer</th><th>Cash In (Received)</th><th>Cash Out (Paid)</th><th>Balance</th>
+                            <th class="sr-col">Sr.No.</th>
+                            <th class="date-col">Date</th>
+                            <th class="desc-col">Description</th>
+                            <th class="party-col">Party / Customer</th>
+                            <th class="in-col">Cash In<br>(Received)</th>
+                            <th class="out-col">Cash Out<br>(Paid)</th>
+                            <th class="balance-col">Balance</th>
                         </tr>
                     </thead>
                     <tbody id="cashTableBody">
-                        <tr><td colspan="7" class="text-center text-muted py-3">Loading cash transactions...</td></tr>
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-3">Loading cash transactions...</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 
+    <!-- Footer -->
     <footer class="footer">
-        <div class="container"><p class="mb-0">&copy; 2026 Khan Petroleum Services Limited. All Rights Reserved. By Mehboob Ali.</p></div>
+        <div class="container">
+            <p class="mb-0">&copy; 2026 Khan Petroleum Services Limited. All Rights Reserved. By Mehboob Ali.</p>
+        </div>
     </footer>
 
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Firebase SDK & Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -75,7 +125,10 @@
         onValue(ref(db, '/'), (snapshot) => {
             const dbData = snapshot.val();
             cashTableBody.innerHTML = '';
-            if (!dbData) { cashTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">No cash transactions found.</td></tr>`; return; }
+            if (!dbData) { 
+                cashTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">No cash transactions found.</td></tr>`; 
+                return; 
+            }
 
             let transactions = [];
             const isCashAcc = (acc) => (acc || '').toLowerCase().includes('cash');
@@ -85,7 +138,13 @@
                 Object.keys(dbData.receipts).forEach(k => {
                     const item = dbData.receipts[k];
                     if (item && isCashAcc(item.account) && (parseFloat(item.amount) || 0) > 0) {
-                        transactions.push({ date: item.date || '', description: item.description || 'Receipt', party: item.customer || '-', cashIn: parseFloat(item.amount), cashOut: 0 });
+                        transactions.push({ 
+                            date: item.date || '', 
+                            description: item.description || 'Receipt', 
+                            party: item.customer || '-', 
+                            cashIn: parseFloat(item.amount), 
+                            cashOut: 0 
+                        });
                     }
                 });
             }
@@ -101,11 +160,23 @@
 
                         // Case A: Withdraw from Bank to Cash -> Cash In
                         if (!acc.includes('cash') && receiver.includes('cash')) {
-                            transactions.push({ date: item.date || '', description: item.description || 'Cash Withdrawal', party: item.account || 'Bank', cashIn: amt, cashOut: 0 });
+                            transactions.push({ 
+                                date: item.date || '', 
+                                description: item.description || 'Cash Withdrawal', 
+                                party: item.account || 'Bank', 
+                                cashIn: amt, 
+                                cashOut: 0 
+                            });
                         }
                         // Case B: Cash Paid out -> Cash Out
                         else if (acc.includes('cash')) {
-                            transactions.push({ date: item.date || '', description: item.description || 'Payment Expense', party: item.receiver || '-', cashIn: 0, cashOut: amt });
+                            transactions.push({ 
+                                date: item.date || '', 
+                                description: item.description || 'Payment Expense', 
+                                party: item.receiver || '-', 
+                                cashIn: 0, 
+                                cashOut: amt 
+                            });
                         }
                     }
                 });
@@ -119,13 +190,13 @@
                     runningBalance += (t.cashIn - t.cashOut);
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td class="text-center fw-bold">${index++}</td>
-                        <td class="text-center">${formatDateToDisplay(t.date)}</td>
-                        <td>${t.description}</td>
-                        <td>${t.party}</td>
-                        <td class="text-end text-success fw-semibold">${t.cashIn ? t.cashIn.toLocaleString() : '-'}</td>
-                        <td class="text-end text-danger fw-semibold">${t.cashOut ? t.cashOut.toLocaleString() : '-'}</td>
-                        <td class="text-end fw-bold">${runningBalance.toLocaleString()}</td>
+                        <td class="fw-bold text-center sr-col">${index++}</td>
+                        <td class="date-col">${formatDateToDisplay(t.date)}</td>
+                        <td class="desc-col">${t.description}</td>
+                        <td class="party-col">${t.party}</td>
+                        <td class="fw-semibold text-success in-col">${t.cashIn ? t.cashIn.toLocaleString() : '-'}</td>
+                        <td class="fw-semibold text-danger out-col">${t.cashOut ? t.cashOut.toLocaleString() : '-'}</td>
+                        <td class="fw-bold balance-col">${runningBalance.toLocaleString()}</td>
                     `;
                     cashTableBody.appendChild(tr);
                 });
