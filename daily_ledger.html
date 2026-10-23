@@ -170,30 +170,22 @@
                         const amt = parseFloat(item.amount) || 0;
                         if (amt > 0) {
                             const receiver = (item.receiver || '').toLowerCase();
-                            const account = (item.account || '').toLowerCase();
+                            const sender = (item.account || '').toLowerCase();
+                            const desc = (item.description || '').toLowerCase();
                             
-                            const isInternalTransfer = receiver.includes('bank') || receiver.includes('cash') || receiver.includes('account') || receiver.includes('meb') || receiver.includes('khan');
+                            // Check if this is an internal account transfer (Bank to Bank, Cash in Hand, etc.)
+                            const isBankOrCash = (text) => 
+                                text.includes('bank') || 
+                                text.includes('cash') || 
+                                text.includes('account') || 
+                                text.includes('meb') || 
+                                text.includes('khan') ||
+                                text.includes('hand');
 
-                            if (isInternalTransfer) {
-                                allTransactions.push({
-                                    date: item.date || '',
-                                    description: (item.description || 'Transfer') + ' (Out)',
-                                    sender: item.account || 'Source Account',
-                                    receiver: item.receiver || 'Destination Account',
-                                    amountReceived: 0,
-                                    amountSend: amt,
-                                    netEffect: -amt
-                                });
-                                allTransactions.push({
-                                    date: item.date || '',
-                                    description: (item.description || 'Transfer') + ' (In)',
-                                    sender: item.account || 'Source Account',
-                                    receiver: item.receiver || 'Destination Account',
-                                    amountReceived: amt,
-                                    amountSend: 0,
-                                    netEffect: amt
-                                });
-                            } else {
+                            const isInternalTransfer = isBankOrCash(receiver) && (isBankOrCash(sender) || desc.includes('transfer') || desc.includes('deposit') || desc.includes('withdraw'));
+
+                            // Agar internal transfer hai toh Daily Ledger mein push mat karo
+                            if (!isInternalTransfer) {
                                 allTransactions.push({
                                     date: item.date || '',
                                     description: item.description || 'Payment Out',
@@ -255,7 +247,7 @@
                 return new Date(a.date) - new Date(b.date);
             });
 
-            // Render rows & calculate Running Total (Receiver first, then Sender)
+            // Render rows & calculate Running Total
             if (allTransactions.length > 0) {
                 let index = 1;
                 let runningTotal = 0;
