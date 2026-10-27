@@ -31,11 +31,30 @@
         .sr-col { width: 5% !important; text-align: center; }
         .date-col { width: 8% !important; white-space: nowrap; text-align: center; }
         .desc-col { width: 20%; min-width: 130px; white-space: normal !important; word-break: break-word; }
-        .receiver-col { width: 18% !important; min-width: 110px; white-space: normal !important; word-break: break-word; }
-        .sender-col { width: 18% !important; min-width: 110px; white-space: normal !important; word-break: break-word; }
+        .receiver-col { width: 18% !important; min-width: 110px; white-space: normal !important; word-break: break-word; position: relative; }
+        .sender-col { width: 18% !important; min-width: 110px; white-space: normal !important; word-break: break-word; position: relative; }
         .received-col { width: 10% !important; text-align: right; }
         .send-col { width: 10% !important; text-align: right; }
         .total-col { width: 11% !important; text-align: right; }
+
+        /* Tooltip Box Style - Green Background with Bright Text */
+        #ledgerTooltip {
+            position: absolute;
+            background: #198754;
+            color: #ffffff;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 9999;
+            display: none;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+            min-width: 220px;
+            max-width: 280px;
+            word-wrap: break-word;
+            pointer-events: none;
+            border-left: 4px solid #ffc107;
+            line-height: 1.6;
+        }
 
         .footer {
             background-color: #212529;
@@ -47,6 +66,9 @@
     </style>
 </head>
 <body>
+
+    <!-- Floating Tooltip Box -->
+    <div id="ledgerTooltip"></div>
 
     <!-- Header Section -->
     <div class="header-section text-center">
@@ -120,6 +142,9 @@
         const db = getDatabase(app);
 
         const ledgerTableBody = document.getElementById('ledgerTableBody');
+        const tooltip = document.getElementById('ledgerTooltip');
+        let clickTimer = null;
+        let isClickLocked = false;
 
         function formatDateToDisplay(dateStr) {
             if (!dateStr) return '-';
@@ -128,6 +153,100 @@
                 return `${parts[2]}-${parts[1]}-${parts[0]}`;
             }
             return dateStr;
+        }
+
+        function cleanCustomerName(str) {
+            if (!str) return '';
+            let cleaned = str.toString().trim();
+            cleaned = cleaned.replace(/\[.*?\]\s*/g, '').trim();
+            cleaned = cleaned.replace(/^(CU\d{3,4}|C\d+)\s*[-:]\s*/i, '').trim();
+            cleaned = cleaned.replace(/\s*\(.*?\)\s*/g, '').trim();
+            return cleaned;
+        }
+
+        function formatBankName(str, bankAccountsObj) {
+            if (!str) return str;
+            let text = str.toString().trim();
+            let lowerText = text.toLowerCase();
+
+            if (lowerText.includes('cash')) {
+                return text;
+            }
+
+            if (bankAccountsObj) {
+                const keys = Object.keys(bankAccountsObj);
+                for (let i = 0; i < keys.length; i++) {
+                    const key = keys[i];
+                    const b = bankAccountsObj[key];
+                    const srNo = i + 1;
+                    
+                    const bTitle = (b.title || '').trim().toLowerCase();
+                    const bName = (b.bankName || '').trim().toLowerCase();
+                    const bAccNo = (b.accNo || '').trim().toLowerCase();
+
+                    if (
+                        (bTitle && lowerText === bTitle) ||
+                        (bName && lowerText === bName) ||
+                        (bAccNo && lowerText === bAccNo) ||
+                        (bTitle && lowerText.includes(bTitle) && bTitle.length > 3)
+                    ) {
+                        return `KPS Bank A/C No. ${srNo}`;
+                    }
+                }
+            }
+
+            return text;
+        }
+
+        function getEntityDetails(nameText, customersObj, bankAccountsObj) {
+            if (!nameText) return null;
+            let textStr = nameText.toString().trim();
+            let lower = textStr.toLowerCase();
+
+            if (lower.includes('cash')) {
+                return null;
+            }
+
+            const bankMatch = textStr.match(/A\/C No\.\s*(\d+)/i);
+            if (bankMatch && bankAccountsObj) {
+                const bankIndex = parseInt(bankMatch[1]) - 1;
+                const keys = Object.keys(bankAccountsObj);
+                if (keys[bankIndex]) {
+                    const matchedBank = bankAccountsObj[keys[bankIndex]];
+                    return `<strong style="color: #ffc107;">Title:</strong> <span style="color: #ffffff; font-weight: 600;">${matchedBank.title || '-'}</span><br>` +
+                           `<strong style="color: #ffc107;">Account No:</strong> <span style="color: #ffffff; font-weight: 600;">${matchedBank.accNo || '-'}</span><br>` +
+                           `<strong style="color: #ffc107;">Bank Name:</strong> <span style="color: #ffffff; font-weight: 600;">${matchedBank.bankName || '-'}</span>`;
+                }
+            }
+
+            if (customersObj) {
+                let matchedCust = null;
+                const cleanedName = cleanCustomerName(textStr).toLowerCase();
+
+                Object.keys(customersObj).forEach(cKey => {
+                    const c = customersObj[cKey];
+                    if (c) {
+                        const cName = (c.name || '').trim().toLowerCase();
+                        const cCode = (c.code || '').trim().toLowerCase();
+                        if (cName === cleanedName || cCode === cleanedName || cName.includes(cleanedName) || cleanedName.includes(cName)) {
+                            matchedCust = c;
+                        }
+                    }
+                });
+
+                if (matchedCust) {
+                    const cellNo = matchedCust.cell || matchedCust.phone || matchedCust.mobile || matchedCust.contact || '-';
+                    const address = matchedCust.address || matchedCust.location || '-';
+                    const code = matchedCust.code || '-';
+                    const name = matchedCust.name || '-';
+                    return `<strong style="color: #ffc107;">Code:</strong> <span style="color: #ffffff; font-weight: 600;">${code}</span><br>` +
+                           `<strong style="color: #ffc107;">Name:</strong> <span style="color: #ffffff; font-weight: 600;">${name}</span><br>` +
+                           `<strong style="color: #ffc107;">Cell No:</strong> <span style="color: #ffffff; font-weight: 600;">${cellNo}</span><br>` +
+                           `<strong style="color: #ffc107;">Address:</strong> <span style="color: #ffffff; font-weight: 600;">${address}</span>`;
+                }
+            }
+
+            return null;
         }
 
         onValue(ref(db, '/'), (snapshot) => {
@@ -139,9 +258,10 @@
                 return;
             }
 
+            const bankAccountsObj = dbData.bank_accounts || {};
+            const customersObj = dbData.customers || {};
             let allTransactions = [];
 
-            // 1. Read from Receipts (Amount Received)
             if (dbData.receipts) {
                 Object.keys(dbData.receipts).forEach(rKey => {
                     const item = dbData.receipts[rKey];
@@ -151,8 +271,8 @@
                             allTransactions.push({
                                 date: item.date || '',
                                 description: item.description || 'Receipt',
-                                sender: item.customer || 'Customer',
-                                receiver: item.account || 'Company Account',
+                                sender: cleanCustomerName(item.customer) || 'Customer',
+                                receiver: formatBankName(item.account || 'Company Account', bankAccountsObj),
                                 amountReceived: amt,
                                 amountSend: 0,
                                 netEffect: amt
@@ -162,7 +282,6 @@
                 });
             }
 
-            // 2. Read from Payments (Amount Sent / Transfers / Withdrawals)
             if (dbData.payments) {
                 Object.keys(dbData.payments).forEach(pKey => {
                     const item = dbData.payments[pKey];
@@ -173,24 +292,23 @@
                             const sender = (item.account || '').toLowerCase();
                             const desc = (item.description || '').toLowerCase();
                             
-                            // Check if this is an internal account transfer (Bank to Bank, Cash in Hand, etc.)
                             const isBankOrCash = (text) => 
                                 text.includes('bank') || 
                                 text.includes('cash') || 
                                 text.includes('account') || 
                                 text.includes('meb') || 
                                 text.includes('khan') ||
-                                text.includes('hand');
+                                text.includes('hand') ||
+                                text.includes('zenith');
 
                             const isInternalTransfer = isBankOrCash(receiver) && (isBankOrCash(sender) || desc.includes('transfer') || desc.includes('deposit') || desc.includes('withdraw'));
 
-                            // Agar internal transfer hai toh Daily Ledger mein push mat karo
                             if (!isInternalTransfer) {
                                 allTransactions.push({
                                     date: item.date || '',
                                     description: item.description || 'Payment Out',
-                                    sender: item.account || 'Company Account',
-                                    receiver: item.receiver || 'Expense/Vendor',
+                                    sender: formatBankName(item.account || 'Company Account', bankAccountsObj),
+                                    receiver: cleanCustomerName(item.receiver) || formatBankName(item.receiver || 'Expense/Vendor', bankAccountsObj),
                                     amountReceived: 0,
                                     amountSend: amt,
                                     netEffect: -amt
@@ -201,7 +319,6 @@
                 });
             }
 
-            // 3. Read from Customer Ledgers
             if (dbData.customer_ledgers) {
                 Object.keys(dbData.customer_ledgers).forEach(custKey => {
                     const custTrans = dbData.customer_ledgers[custKey];
@@ -211,13 +328,15 @@
                             if (item && typeof item === 'object') {
                                 const amountReceived = parseFloat(item.amountReceived) || 0;
                                 const amountSent = parseFloat(item.amount) || 0;
+                                const cleanedCust = cleanCustomerName(item.customer || custKey);
+                                const formattedMethod = formatBankName(item.method || 'Company Account', bankAccountsObj);
 
                                 if (amountReceived > 0) {
                                     allTransactions.push({
                                         date: item.date || '',
                                         description: item.description || 'Payment Received',
-                                        sender: item.customer || 'Customer',
-                                        receiver: item.method || 'Company Account',
+                                        sender: cleanedCust || 'Customer',
+                                        receiver: formattedMethod,
                                         amountReceived: amountReceived,
                                         amountSend: 0,
                                         netEffect: amountReceived
@@ -228,7 +347,7 @@
                                         date: item.date || '',
                                         description: item.description || 'Fuel/Item Sale',
                                         sender: 'Company',
-                                        receiver: item.customer || 'Customer',
+                                        receiver: cleanedCust || 'Customer',
                                         amountReceived: 0,
                                         amountSend: amountSent,
                                         netEffect: -amountSent
@@ -240,14 +359,12 @@
                 });
             }
 
-            // Sort chronologically by Date
             allTransactions.sort((a, b) => {
                 if (!a.date) return 1;
                 if (!b.date) return -1;
                 return new Date(a.date) - new Date(b.date);
             });
 
-            // Render rows & calculate Running Total
             if (allTransactions.length > 0) {
                 let index = 1;
                 let runningTotal = 0;
@@ -255,24 +372,105 @@
                 allTransactions.forEach(t => {
                     runningTotal += t.netEffect;
                     const displayDate = formatDateToDisplay(t.date);
+                    const finalReceiver = formatBankName(t.receiver, bankAccountsObj);
+                    const finalSender = formatBankName(t.sender, bankAccountsObj);
 
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td class="fw-bold text-center sr-col">${index++}</td>
                         <td class="date-col">${displayDate}</td>
                         <td class="desc-col">${t.description}</td>
-                        <td class="receiver-col">${t.receiver}</td>
-                        <td class="sender-col">${t.sender}</td>
+                        <td class="receiver-col" data-entity="${finalReceiver}">${finalReceiver}</td>
+                        <td class="sender-col" data-entity="${finalSender}">${finalSender}</td>
                         <td class="fw-semibold text-success received-col">${t.amountReceived ? t.amountReceived.toLocaleString() : '-'}</td>
                         <td class="fw-semibold text-danger send-col">${t.amountSend ? t.amountSend.toLocaleString() : '-'}</td>
                         <td class="fw-bold total-col">${runningTotal.toLocaleString()}</td>
                     `;
                     ledgerTableBody.appendChild(row);
                 });
+
+                setupTooltips(customersObj, bankAccountsObj);
+
             } else {
                 ledgerTableBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">No transactions found.</td></tr>`;
             }
         });
+
+        function setupTooltips(customersObj, bankAccountsObj) {
+            const cells = document.querySelectorAll('.receiver-col, .sender-col');
+            
+            cells.forEach(cell => {
+                const entityName = cell.getAttribute('data-entity');
+                const detailsHtml = getEntityDetails(entityName, customersObj, bankAccountsObj);
+                
+                if (!detailsHtml) {
+                    cell.style.cursor = 'default';
+                    return;
+                }
+
+                cell.style.cursor = 'pointer';
+
+                cell.addEventListener('mouseenter', (e) => {
+                    if (isClickLocked) return;
+                    showTooltip(e, detailsHtml);
+                });
+
+                cell.addEventListener('mousemove', (e) => {
+                    if (isClickLocked) return;
+                    updateTooltipPosition(e);
+                });
+
+                cell.addEventListener('mouseleave', () => {
+                    if (isClickLocked) return;
+                    hideTooltip();
+                });
+
+                cell.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (clickTimer) clearTimeout(clickTimer);
+
+                    isClickLocked = true;
+                    showTooltip(e, detailsHtml);
+
+                    clickTimer = setTimeout(() => {
+                        hideTooltip();
+                        isClickLocked = false;
+                    }, 5000);
+                });
+            });
+
+            document.addEventListener('click', () => {
+                if (isClickLocked) {
+                    if (clickTimer) clearTimeout(clickTimer);
+                    hideTooltip();
+                    isClickLocked = false;
+                }
+            });
+        }
+
+        function showTooltip(e, htmlContent) {
+            tooltip.innerHTML = htmlContent;
+            tooltip.style.display = 'block';
+            updateTooltipPosition(e);
+        }
+
+        function updateTooltipPosition(e) {
+            const screenWidth = window.innerWidth;
+            let x = e.pageX + 15;
+            let y = e.pageY + 15;
+            
+            if (x + 280 > screenWidth) {
+                x = e.pageX - 290;
+                if (x < 10) x = 10;
+            }
+            
+            tooltip.style.left = x + 'px';
+            tooltip.style.top = y + 'px';
+        }
+
+        function hideTooltip() {
+            tooltip.style.display = 'none';
+        }
     </script>
 </body>
 </html>
