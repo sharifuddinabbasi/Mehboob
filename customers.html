@@ -149,16 +149,24 @@
             return dateStr;
         }
 
-        // Helper to separate Method (Cash / Bank) and Account detail
+        // Helper to separate Method (Cash / Bank / Cheque) and Account detail accurately
         function extractMethodAndAccount(rawMethod, rawAccount) {
-            const val = (rawMethod || rawAccount || '').trim();
-            if (!val || val === '-') {
+            const methodVal = (rawMethod || '').trim();
+            const accountVal = (rawAccount || '').trim();
+
+            if (!methodVal && !accountVal) {
                 return { methodType: '-', accountName: '-' };
             }
-            if (val.toLowerCase() === 'cash' || val.toLowerCase().includes('cash in hand')) {
+            
+            if (methodVal.toLowerCase() === 'cash' || accountVal.toLowerCase().includes('cash in hand')) {
                 return { methodType: 'Cash', accountName: 'Cash in Hand' };
             }
-            return { methodType: 'Bank', accountName: val };
+            
+            // Properly map the method and account without mixing them up
+            return { 
+                methodType: methodVal || 'Bank', 
+                accountName: accountVal || '-' 
+            };
         }
 
         // Helper to check if a transaction record belongs to the selected customer
