@@ -1,15 +1,15 @@
 {
   "name": "Khan Petroleum Services Limited",
-  "short_name": "KPS Accounts",
+  "short_name": "KPS Nigeria",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#f4f7f6",
   "theme_color": "#198754",
   "icons": [
     {
-      "src": "Ico.ico",
+      "src": "icon.png",
       "sizes": "192x192 512x512",
-      "type": "image/x-icon"
+      "type": "image/png"
     }
   ]
 }

@@ -1,11 +1,16 @@
-const CACHE_NAME = 'kps-cache-v1';
+const CACHE_NAME = 'kps-cache-v2';
 const urlsToCache = [
   'index.html',
   'manifest.json',
-  'icon-192.png'
+  'icon.png',
+  'daily_ledger.html',
+  'bank_ledger.html',
+  'banks_list.html',
+  'cash_in_hand.html',
+  'customers.html',
+  'customers_list.html'
 ];
 
-// Install Service Worker
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -15,7 +20,6 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Fetch Cached Files
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
